@@ -27,10 +27,8 @@ curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ID/codyssey-mac-setup/m
 
 `YOUR_GITHUB_ID`만 본인의 GitHub 아이디로 바꿉니다.
 
-예를 들어 GitHub 아이디가 `kimjy`라면:
-
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kimjy/codyssey-mac-setup/main/setup.command -o /tmp/codyssey-setup.command && /bin/bash /tmp/codyssey-setup.command
+curl -fsSL https://raw.githubusercontent.com/julieeeee2/codyssey-mac-setup/main/setup.command -o /tmp/codyssey-setup.command && /bin/bash /tmp/codyssey-setup.command
 ```
 
 이 명령은 GitHub의 파일을 임시 폴더에 내려받은 뒤 바로 실행합니다. 실행이 끝나면 터미널에 적용 결과가 표시됩니다.
