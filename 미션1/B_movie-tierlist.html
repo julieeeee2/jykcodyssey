@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>영화 티어리스트</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f4f0; --panel:#ffffff; --panel2:#faf9f6; --ink:#1c1b1a; --muted:#6d6a64; --faint:#a19d96;
+  --line:#e6e2db; --line2:#d7d2c9; --accent:#d9453b; --accent-ink:#ffffff; --accent-soft:#fdecea;
+  --ok:#2f8f5b; --radius:14px; --shadow:0 1px 2px rgba(30,25,20,.06),0 6px 20px rgba(30,25,20,.06);
+  --tS:#ff8a8a; --tA:#ffbe85; --tB:#ffdc7a; --tC:#eeea7c; --tD:#b6e48c;
+  --card-w:84px;
+  --font:"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+body.modal-open{overflow:hidden}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 13px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);font-weight:600;font-size:14px;white-space:nowrap;transition:background .15s,border-color .15s}
+.btn:hover{background:var(--panel2);border-color:#c8c2b7}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:#c33a31}
+.btn.ghost{background:transparent}
+.btn.danger{color:#b4271e}
+.btn.danger:hover{background:var(--accent-soft);border-color:#f0b9b4}
+.btn.sm{height:30px;padding:0 10px;font-size:13px;border-radius:8px}
+.btn.wide{width:100%}
+
+/* header */
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 20px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:900;font-size:15px;letter-spacing:-.5px;flex:none}
+.brand h1{margin:0;font-size:17px;letter-spacing:-.3px}
+.saved{margin:0;font-size:12px;color:var(--muted)}
+.saved.err{color:#b4271e;font-weight:600}
+.listbar{display:flex;gap:8px;align-items:center}
+.listbar select{height:36px;max-width:240px;padding:0 32px 0 12px;border-radius:10px;border:1px solid var(--line2);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%236d6a64' stroke-width='1.8'/%3E%3C/svg%3E") no-repeat right 11px center;appearance:none;-webkit-appearance:none;font-weight:600}
+.actions{display:flex;gap:8px}
+
+/* tabs (mobile) */
+.tabs{display:none;position:sticky;z-index:15;background:var(--bg);padding:8px 12px;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;height:38px;border-radius:10px;border:1px solid var(--line2);background:#fff;font-weight:700;font-size:14px}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabs b{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;line-height:20px}
+
+/* layout */
+.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;padding:18px 20px 40px;max-width:1500px;margin:0 auto;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.library{position:sticky;top:78px;max-height:calc(100vh - 96px);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.library h2,.board h2{margin:0;font-size:14px;font-weight:800;letter-spacing:-.2px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.count{font-size:12px;color:var(--muted);font-weight:600}
+.search form{display:flex;gap:6px}
+.search input{flex:1;min-width:0;height:40px;padding:0 12px;border:1px solid var(--line2);border-radius:10px;background:#fff}
+.search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.note{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.note a{color:var(--accent);font-weight:600}
+.results{margin-top:8px;display:flex;flex-direction:column;gap:4px;max-height:300px;overflow:auto}
+.results:empty{display:none}
+.res{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;border:1px solid transparent}
+.res:hover{background:var(--panel2);border-color:var(--line)}
+.res .thumb{width:36px;height:54px;border-radius:5px;object-fit:cover;flex:none;background:#eee}
+.res .thumb.ph{display:grid;place-items:center;font-size:9px;color:#fff;font-weight:700;text-align:center;overflow:hidden;padding:2px;line-height:1.1}
+.res .meta{flex:1;min-width:0}
+.res .meta b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .meta span{font-size:12px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res .meta .tag{display:inline-block;vertical-align:1px;font-size:10.5px;font-weight:700;color:var(--muted);border:1px solid var(--line2);border-radius:5px;padding:0 4px;margin-left:4px}
+
+/* cards & zones */
+.zone{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start;min-height:60px;border-radius:10px;transition:background .12s,box-shadow .12s}
+.zone.over{background:var(--accent-soft);box-shadow:inset 0 0 0 2px #f2b3ad}
+#unranked{padding:10px;background:var(--panel2);border:1px dashed var(--line2);min-height:120px}
+.empty{font-size:13px;color:var(--faint);padding:6px 4px;align-self:center;pointer-events:none}
+.card{position:relative;width:var(--card-w);flex:none;border-radius:8px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .12s}
+.card:hover{transform:translateY(-2px)}
+.card:active{cursor:grabbing}
+.card.dragging{opacity:.35}
+.card.ins::before{content:"";position:absolute;left:-7px;top:0;bottom:0;width:4px;border-radius:2px;background:var(--accent)}
+.zone.ins-end::after{content:"";width:4px;align-self:stretch;min-height:60px;border-radius:2px;background:var(--accent)}
+.poster{display:block;width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:#ddd;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.poster.ph{display:flex;align-items:center;justify-content:center;padding:6px;color:#fff;font-weight:800;font-size:12px;line-height:1.25;text-align:center;word-break:keep-all;overflow:hidden;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cap{padding:4px 1px 0}
+.cap .t{font-size:12px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap .y{font-size:11px;color:var(--muted)}
+.card .undo{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:7px;border:0;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:13px;font-weight:800;display:none;place-items:center;padding:0}
+@media (hover:hover){.card:hover .undo,.card:focus-within .undo{display:grid}}
+
+/* board */
+.board{padding:16px}
+.board-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.list-title{display:flex;align-items:center;gap:8px;border:0;background:none;padding:2px 4px;border-radius:8px;font-size:22px;font-weight:800;letter-spacing:-.5px;text-align:left;min-width:0}
+.list-title:hover{background:var(--panel2)}
+.list-title .pen{font-size:14px;color:var(--faint)}
+.list-title .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-tools{display:flex;gap:6px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.stats{font-size:12.5px;color:var(--muted);margin-right:4px}
+.tiers{display:flex;flex-direction:column;gap:6px}
+.tier{display:flex;min-height:150px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel2)}
+.tier .lab{flex:none;width:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#1c1b1a}
+.tier .lab b{font-size:36px;font-weight:900;line-height:1}
+.tier .lab small{font-size:11.5px;font-weight:700;opacity:.7}
+.tier .zone{flex:1;padding:12px;border-radius:0;min-height:150px}
+.tier .empty{align-self:center}
+.hint{margin:12px 2px 0;font-size:12.5px;color:var(--muted)}
+.hint kbd{font-family:inherit;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fff}
+
+/* modal */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(28,27,26,.42);display:flex;align-items:center;justify-content:center;padding:20px}
+.overlay[hidden]{display:none}
+.modal{width:100%;max-width:440px;max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);padding:20px;animation:pop .16s ease-out}
+.modal.wide{max-width:640px}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.modal h3{margin:0 0 6px;font-size:18px;letter-spacing:-.3px}
+.modal p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.modal .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label,.field .lb{font-size:13px;font-weight:700}
+.field input[type=text],.field input[type=number]{height:40px;padding:0 12px;border:1px solid var(--line2);border-radius:10px}
+.field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.field .help{font-size:12px;color:var(--muted)}
+.radio{display:flex;flex-direction:column;gap:6px}
+.radio label{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:500;padding:8px 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.radio label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.sheet-head{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.sheet-head .poster{width:58px;flex:none}
+.sheet-head b{font-size:17px;display:block;word-break:keep-all}
+.sheet-head span{font-size:13px;color:var(--muted)}
+.tier-pick{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+.tier-pick button{height:58px;border-radius:12px;border:2px solid transparent;font-size:24px;font-weight:900;color:#1c1b1a;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.tier-pick button small{font-size:10px;font-weight:700;opacity:.65;margin-top:3px}
+.tier-pick button.cur{border-color:#1c1b1a}
+.sheet-actions{display:flex;flex-direction:column;gap:6px}
+.sheet-actions .btn{justify-content:flex-start;height:42px}
+.poster-pick{display:flex;gap:12px;align-items:center}
+.poster-pick .poster{width:64px;flex:none}
+.preview-img{display:block;width:100%;max-height:58vh;object-fit:contain;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.setbox{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.setbox h4{margin:0 0 6px;font-size:14px}
+.setbox ol{margin:0 0 10px;padding-left:18px;font-size:13px;color:var(--muted)}
+.attrib{font-size:11.5px;color:var(--faint);margin-top:12px}
+.keyrow{display:flex;gap:6px}
+.keyrow input{flex:1;min-width:0}
+
+/* toast */
+.toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:#1c1b1a;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:pop .16s ease-out}
+.toast.error{background:#b4271e}
+
+/* responsive */
+@media (max-width:860px){
+  :root{--card-w:72px}
+  .top{padding:10px 12px;gap:8px}
+  .brand{width:100%;margin-right:0}
+  .listbar{flex:1;min-width:0}
+  .listbar select{flex:1;max-width:none;min-width:0}
+  .actions{width:100%;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .actions::-webkit-scrollbar{display:none}
+  .actions .btn{flex:1 0 auto}
+  .tabs{display:flex}
+  .layout{display:block;padding:12px 12px 90px}
+  .library{position:static;max-height:none;overflow:visible}
+  body[data-tab=library] .board{display:none}
+  body[data-tab=board] .library{display:none}
+  .tier{min-height:120px}
+  .tier .lab{width:56px}
+  .tier .lab b{font-size:28px}
+  .tier .zone{padding:10px;gap:8px;min-height:120px}
+  .list-title{font-size:19px}
+  .board-tools{margin-left:0;width:100%}
+  .overlay{align-items:flex-end;padding:0}
+  .modal{max-width:none;border-radius:18px 18px 0 0;max-height:88vh;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .modal.wide{max-width:none}
+}
+</style>
+</head>
+<body data-tab="library">
+
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">S·A</div>
+    <div>
+      <h1>영화 티어리스트</h1>
+      <p class="saved" id="saved">자동 저장 준비됨</p>
+    </div>
+  </div>
+  <div class="listbar">
+    <label class="sr" for="listSelect">티어리스트 선택</label>
+    <select id="listSelect"></select>
+    <button class="btn" id="btnNew">＋ 새 목록</button>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnSettings">검색 설정</button>
+    <button class="btn" id="btnImport">가져오기</button>
+    <button class="btn" id="btnExport">내보내기</button>
+    <button class="btn primary" id="btnImage">이미지 저장</button>
+  </div>
+  <input type="file" id="importFile" accept=".json,application/json" hidden>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="화면 전환">
+  <button data-tab="library">영화 담기 <b id="tabCount">0</b></button>
+  <button data-tab="board">티어표</button>
+</nav>
+
+<main class="layout">
+  <aside class="panel library" aria-label="영화 목록">
+    <section class="search">
+      <div class="sec-head"><h2>영화 검색</h2><span class="count" id="searchMode"></span></div>
+      <form id="searchForm" autocomplete="off">
+        <label class="sr" for="q">영화 제목</label>
+        <input id="q" type="search" placeholder="영화 제목 (예: 올드보이)" enterkeyhint="search">
+        <button class="btn primary" type="submit">검색</button>
+      </form>
+      <p class="note" id="searchNote"></p>
+      <div class="results" id="results"></div>
+    </section>
+
+    <button class="btn wide" id="btnManual">＋ 검색되지 않는 영화 직접 등록</button>
+
+    <section>
+      <div class="sec-head"><h2>미분류 영화</h2><span class="count" id="uCount"></span></div>
+      <div class="zone" id="unranked" data-zone="U" aria-label="미분류 영화 목록"></div>
+    </section>
+  </aside>
+
+  <section class="panel board" aria-label="티어표">
+    <div class="board-head">
+      <button class="list-title" id="listTitle" title="목록 이름 바꾸기"><span class="nm"></span><span class="pen">✎</span></button>
+      <div class="board-tools">
+        <span class="stats" id="stats"></span>
+        <button class="btn sm danger" id="btnDeleteList">목록 삭제</button>
+        <button class="btn sm" id="btnReset">전체 초기화</button>
+      </div>
+    </div>
+    <div class="tiers" id="tiers"></div>
+    <p class="hint">포스터를 끌어다 놓거나, 클릭(터치)해서 등급을 고르세요. 포스터에 포커스를 둔 상태에서 <kbd>S</kbd><kbd>A</kbd><kbd>B</kbd><kbd>C</kbd><kbd>D</kbd> 키로 바로 이동, <kbd>U</kbd> 키로 미분류로 되돌릴 수 있어요.</p>
+  </section>
+</main>
+
+<div class="overlay" id="overlay" hidden></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =========================================================
+   상수 · 기본 데이터
+   ========================================================= */
+const LS_KEY = 'mtl.data.v1';
+const KEY_KEY = 'mtl.tmdbKey';
+const APP_ID = 'movie-tierlist';
+const TIERS = ['S','A','B','C','D'];
+const TIER_INFO = {
+  S:{color:'#ff8a8a', desc:'최고로 좋아하는 영화'},
+  A:{color:'#ffbe85', desc:'매우 좋아하는 영화'},
+  B:{color:'#ffdc7a', desc:'좋은 영화'},
+  C:{color:'#eeea7c', desc:'보통인 영화'},
+  D:{color:'#b6e48c', desc:'아쉬운 영화'}
+};
+const IMG_BASE = 'https://image.tmdb.org/t/p/';
+const FONT = '"Apple SD Gothic Neo","Malgun Gothic","맑은 고딕","Noto Sans KR",system-ui,-apple-system,"Segoe UI",sans-serif';
+
+/* 기획서 4장: 초기 테스트 영화 8편 */
+const SEED = [
+  ['기생충',2019],['인터스텔라',2014],['라라랜드',2016],['센과 치히로의 행방불명',2001],
+  ['어벤져스: 엔드게임',2019],['범죄도시',2017],['타이타닉',1997],['토이 스토리',1995]
+];
+
+/* API 키 없이도 검색할 수 있는 내장 목록 (포스터 없음) */
+const CATALOG = [
+  ['기생충',2019],['인터스텔라',2014],['라라랜드',2016],['센과 치히로의 행방불명',2001],['어벤져스: 엔드게임',2019],
+  ['범죄도시',2017],['타이타닉',1997],['토이 스토리',1995],['올드보이',2003],['살인의 추억',2003],['괴물',2006],
+  ['부산행',2016],['아가씨',2016],['헤어질 결심',2022],['신과함께-죄와 벌',2017],['극한직업',2019],['명량',2014],
+  ['서울의 봄',2023],['파묘',2024],['범죄도시2',2022],['택시운전사',2017],['베테랑',2015],['국제시장',2014],['미나리',2020],
+  ['인셉션',2010],['다크 나이트',2008],['오펜하이머',2023],['매트릭스',1999],['쇼생크 탈출',1994],['포레스트 검프',1994],
+  ['대부',1972],['펄프 픽션',1994],['쥬라기 공원',1993],['반지의 제왕: 반지 원정대',2001],['해리 포터와 마법사의 돌',2001],
+  ['어벤져스',2012],['아이언맨',2008],['어벤져스: 인피니티 워',2018],['겨울왕국',2013],['코코',2017],['인사이드 아웃',2015],
+  ['업',2009],['월-E',2008],['토이 스토리 3',2010],['이웃집 토토로',1988],['하울의 움직이는 성',2004],['모노노케 히메',1997],
+  ['너의 이름은.',2016],['스즈메의 문단속',2022],['듄',2021],['탑건: 매버릭',2022],['조커',2019],['위플래쉬',2014],
+  ['비긴 어게인',2013],['어바웃 타임',2013],['노트북',2004],['레옹',1994],['아바타',2009],['백 투 더 퓨처',1985]
+];
+
+/* =========================================================
+   유틸
+   ========================================================= */
+const $ = s => document.querySelector(s);
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function h(tag, attrs, ...kids){
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs || {})){
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'dataset') Object.assign(el.dataset, v);
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()){
+    if (c == null || c === false) continue;
+    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+const norm = s => String(s || '').toLowerCase().replace(/[\s\-:·.,!?'"’()~]/g,'');
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtDate(d){ return `${d.getFullYear()}.${pad2(d.getMonth()+1)}.${pad2(d.getDate())}`; }
+function stamp(d){ return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}`; }
+function safeName(s){ return String(s).replace(/[\\/:*?"<>|]/g,'').trim().slice(0,60) || '티어리스트'; }
+function hashHue(s){ let x = 0; for (const ch of String(s)) x = (x*31 + ch.codePointAt(0)) >>> 0; return x % 360; }
+function palette(title){ const hu = hashHue(title); return [`hsl(${hu} 42% 56%)`, `hsl(${(hu+40)%360} 48% 32%)`]; }
+function download(url, name){ const a = h('a',{href:url, download:name}); document.body.append(a); a.click(); a.remove(); }
+
+/* =========================================================
+   상태 · 저장
+   ========================================================= */
+let state = null;
+let lastResults = null, lastNote = '';
+
+function emptyList(name){
+  return { id:uid(), name, createdAt:Date.now(), updatedAt:Date.now(),
+           movies:{}, tiers:{S:[],A:[],B:[],C:[],D:[]}, unranked:[] };
+}
+function makeMovie(o){
+  return { id:uid(), title:String(o.title).trim(), year:o.year || null, poster:o.poster || null,
+           tmdbId:o.tmdbId || null, source:o.source || 'manual' };
+}
+function newList(name, mode){
+  const l = emptyList(name);
+  if (mode === 'seed') SEED.forEach(([t,y]) => { const m = makeMovie({title:t, year:y, source:'seed'}); l.movies[m.id] = m; l.unranked.push(m.id); });
+  if (mode === 'copy'){
+    const src = cur();
+    const order = [...TIERS.flatMap(t => src.tiers[t]), ...src.unranked];
+    order.forEach(id => { const o = src.movies[id]; if (!o) return; const m = {...o, id:uid()}; l.movies[m.id] = m; l.unranked.push(m.id); });
+  }
+  return l;
+}
+function sanitizeMovie(m){
+  if (!m || typeof m.title !== 'string' || !m.title.trim()) return null;
+  const y = parseInt(m.year, 10);
+  const p = typeof m.poster === 'string' && (m.poster.startsWith('data:image/') || m.poster.startsWith('https://')) ? m.poster : null;
+  return { id:String(m.id || uid()), title:m.title.trim().slice(0,200), year:(y>=1888 && y<=2100) ? y : null,
+           poster:p, tmdbId:Number.isFinite(+m.tmdbId) && m.tmdbId ? +m.tmdbId : null, source:String(m.source || 'manual') };
+}
+function sanitizeList(raw){
+  if (!raw || typeof raw !== 'object') return null;
+  const l = emptyList(String(raw.name || '이름 없는 목록').slice(0,80));
+  l.id = String(raw.id || uid());
+  l.createdAt = +raw.createdAt || Date.now();
+  l.updatedAt = +raw.updatedAt || Date.now();
+  const movies = raw.movies && typeof raw.movies === 'object' ? Object.values(raw.movies) : [];
+  movies.forEach(m => { const s = sanitizeMovie(m); if (s) l.movies[s.id] = s; });
+  const seen = new Set();
+  const take = arr => (Array.isArray(arr) ? arr : []).map(String).filter(id => l.movies[id] && !seen.has(id) && seen.add(id));
+  TIERS.forEach(t => l.tiers[t] = take(raw.tiers && raw.tiers[t]));
+  l.unranked = take(raw.unranked);
+  Object.keys(l.movies).forEach(id => { if (!seen.has(id)){ seen.add(id); l.unranked.push(id); } });
+  return l;
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw){
+      const d = JSON.parse(raw);
+      const lists = (d.lists || []).map(sanitizeList).filter(Boolean);
+      if (lists.length){
+        state = { version:1, activeId: lists.some(l => l.id === d.activeId) ? d.activeId : lists[0].id, lists };
+        return;
+      }
+    }
+  }catch(e){ console.warn(e); }
+  const l = newList('나의 영화 티어', 'seed');
+  state = { version:1, activeId:l.id, lists:[l] };
+  save();
+}
+function save(){
+  const el = $('#saved');
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    const d = new Date();
+    el.textContent = `자동 저장됨 · ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    el.classList.remove('err');
+    return true;
+  }catch(e){
+    el.textContent = '저장 실패 — 저장 공간 부족. 내보내기로 백업하세요';
+    el.classList.add('err');
+    toast('브라우저 저장 공간이 부족해 저장하지 못했어요. 내보내기로 백업한 뒤 쓰지 않는 목록을 정리해 주세요.', {type:'error', ms:5000});
+    return false;
+  }
+}
+function cur(){ return state.lists.find(l => l.id === state.activeId) || state.lists[0]; }
+function touch(){ const l = cur(); l.updatedAt = Date.now(); save(); render(); }
+
+function locate(l, id){
+  let i = l.unranked.indexOf(id);
+  if (i > -1) return {zone:'U', arr:l.unranked, idx:i};
+  for (const t of TIERS){ i = l.tiers[t].indexOf(id); if (i > -1) return {zone:t, arr:l.tiers[t], idx:i}; }
+  return null;
+}
+function moveMovie(id, zone, beforeId){
+  const l = cur(); const from = locate(l, id); if (!from) return;
+  from.arr.splice(from.idx, 1);
+  const target = zone === 'U' ? l.unranked : l.tiers[zone];
+  let i = beforeId ? target.indexOf(beforeId) : -1;
+  if (i < 0) i = target.length;
+  target.splice(i, 0, id);
+  touch();
+}
+function addMovie(o){
+  const l = cur(); const m = makeMovie(o);
+  l.movies[m.id] = m; l.unranked.push(m.id); touch();
+  return m;
+}
+function removeMovie(id){
+  const l = cur(); const loc = locate(l, id);
+  if (loc) loc.arr.splice(loc.idx, 1);
+  delete l.movies[id]; touch();
+}
+function isInList(r){
+  return Object.values(cur().movies).some(m =>
+    (r.tmdbId && m.tmdbId === r.tmdbId) ||
+    (norm(m.title) === norm(r.title) && (!r.year || !m.year || m.year === r.year)));
+}
+
+/* =========================================================
+   렌더링
+   ========================================================= */
+function placeholderEl(m, cls){
+  const [c1,c2] = palette(m.title);
+  return h('div',{class:cls+' ph', style:`background:linear-gradient(160deg,${c1},${c2})`, role:'img', 'aria-label':m.title+' (포스터 없음)'}, m.title);
+}
+function posterEl(m, cls = 'poster'){
+  if (!m.poster) return placeholderEl(m, cls);
+  const img = h('img',{class:cls, src:m.poster, alt:m.title+' 포스터', draggable:'false', loading:'lazy'});
+  img.addEventListener('error', () => img.replaceWith(placeholderEl(m, cls)), {once:true});
+  return img;
+}
+function cardEl(m, zone){
+  const c = h('div',{class:'card', draggable:'true', tabindex:'0', role:'button',
+    'aria-label':`${m.title}${m.year ? ' ('+m.year+')' : ''}, ${zone === 'U' ? '미분류' : zone+'등급'}. 눌러서 등급 선택`, dataset:{id:m.id}},
+    posterEl(m),
+    h('div',{class:'cap'}, h('div',{class:'t', title:m.title}, m.title), h('div',{class:'y'}, m.year ? m.year+'년' : '연도 미상')));
+  if (zone !== 'U') c.append(h('button',{class:'undo', title:'미분류로 되돌리기', 'aria-label':'미분류로 되돌리기', tabindex:'-1'}, '↩'));
+  return c;
+}
+function render(){
+  const l = cur();
+  // 목록 선택
+  const sel = $('#listSelect'); sel.innerHTML = '';
+  state.lists.forEach(x => {
+    const n = Object.keys(x.movies).length;
+    sel.append(h('option',{value:x.id, selected:x.id === l.id}, `${x.name} (${n})`));
+  });
+  // 제목·통계
+  $('#listTitle .nm').textContent = l.name;
+  const total = Object.keys(l.movies).length;
+  const ranked = TIERS.reduce((s,t) => s + l.tiers[t].length, 0);
+  $('#stats').textContent = `분류 ${ranked} / 전체 ${total}편`;
+  // 티어표
+  const wrap = $('#tiers'); wrap.innerHTML = '';
+  TIERS.forEach(t => {
+    const zone = h('div',{class:'zone', 'data-zone':t, 'aria-label':`${t}등급 영역`});
+    if (!l.tiers[t].length) zone.append(h('span',{class:'empty'}, `${TIER_INFO[t].desc} — 여기에 놓으세요`));
+    l.tiers[t].forEach(id => zone.append(cardEl(l.movies[id], t)));
+    wrap.append(h('div',{class:'tier', 'data-zone':t},
+      h('div',{class:'lab', style:`background:${TIER_INFO[t].color}`, title:TIER_INFO[t].desc}, h('b',{},t), h('small',{}, l.tiers[t].length+'편')),
+      zone));
+  });
+  // 미분류
+  const u = $('#unranked'); u.innerHTML = '';
+  if (!l.unranked.length) u.append(h('span',{class:'empty'}, total ? '모든 영화를 분류했어요. 등급에서 되돌린 영화가 여기에 모여요.' : '위에서 영화를 검색하거나 직접 등록해 보세요.'));
+  l.unranked.forEach(id => u.append(cardEl(l.movies[id], 'U')));
+  $('#uCount').textContent = l.unranked.length + '편';
+  $('#tabCount').textContent = l.unranked.length;
+  $('#btnReset').disabled = ranked === 0;
+  updateSearchMode();
+  if (lastResults) renderResults(lastResults, lastNote);
+}
+
+/* =========================================================
+   드래그 앤 드롭 (PC)
+   ========================================================= */
+let dragId = null;
+function clearDropMarks(){
+  document.querySelectorAll('.over,.ins-end').forEach(e => e.classList.remove('over','ins-end'));
+  document.querySelectorAll('.card.ins').forEach(e => e.classList.remove('ins'));
+}
+function dropTarget(e){
+  const host = e.target.closest && e.target.closest('[data-zone]');
+  if (!host) return null;
+  const zoneEl = host.classList.contains('zone') ? host : host.querySelector('.zone');
+  const cards = [...zoneEl.querySelectorAll('.card')].filter(c => c.dataset.id !== dragId);
+  let before = null;
+  for (const c of cards){
+    const r = c.getBoundingClientRect();
+    if (e.clientY < r.top || (e.clientY <= r.bottom && e.clientX < r.left + r.width/2)){ before = c; break; }
+  }
+  return { zone:host.dataset.zone, zoneEl, before };
+}
+document.addEventListener('dragstart', e => {
+  const c = e.target.closest && e.target.closest('.card');
+  if (!c) return;
+  dragId = c.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragId);
+  requestAnimationFrame(() => c.classList.add('dragging'));
+});
+document.addEventListener('dragend', () => {
+  dragId = null; clearDropMarks();
+  document.querySelectorAll('.dragging').forEach(e => e.classList.remove('dragging'));
+});
+document.addEventListener('dragover', e => {
+  if (!dragId) return;
+  const t = dropTarget(e); if (!t) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearDropMarks();
+  t.zoneEl.classList.add('over');
+  if (t.before) t.before.classList.add('ins'); else t.zoneEl.classList.add('ins-end');
+});
+document.addEventListener('drop', e => {
+  if (!dragId) return;
+  const t = dropTarget(e); if (!t) return;
+  e.preventDefault();
+  const id = dragId; dragId = null; clearDropMarks();
+  moveMovie(id, t.zone, t.before ? t.before.dataset.id : null);
+});
+
+/* 카드 클릭 / 키보드 */
+document.addEventListener('click', e => {
+  const undo = e.target.closest('.card .undo');
+  if (undo){ e.stopPropagation(); const id = undo.closest('.card').dataset.id; moveMovie(id, 'U', null); toast('미분류로 되돌렸어요'); return; }
+  const c = e.target.closest('.card');
+  if (c && !$('#overlay').contains(c)) openSheet(c.dataset.id);
+});
+document.addEventListener('keydown', e => {
+  if (!$('#overlay').hidden){
+    if (e.key === 'Escape'){ e.preventDefault(); closeModal(); return; }
+    if (modalKey && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) modalKey(e);
+    return;
+  }
+  const c = document.activeElement && document.activeElement.closest && document.activeElement.closest('.card');
+  if (!c || e.metaKey || e.ctrlKey || e.altKey) return;
+  const id = c.dataset.id; const k = e.key.toUpperCase();
+  const map = {'1':'S','2':'A','3':'B','4':'C','5':'D'};
+  const tier = TIERS.includes(k) ? k : map[k];
+  if (tier){ e.preventDefault(); moveMovie(id, tier, null); refocus(id); }
+  else if (k === 'U' || e.key === 'Backspace'){ e.preventDefault(); moveMovie(id, 'U', null); refocus(id); }
+  else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openSheet(id); }
+});
+function refocus(id){ const el = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`); if (el) el.focus(); }
+
+/* =========================================================
+   모달 · 토스트
+   ========================================================= */
+let modalKey = null, modalOnClose = null, lastFocus = null;
+function openModal(node, opt = {}){
+  const ov = $('#overlay');
+  if (ov.hidden) lastFocus = document.activeElement;
+  ov.innerHTML = '';
+  const box = h('div',{class:'modal' + (opt.wide ? ' wide' : ''), role:'dialog', 'aria-modal':'true'}, node);
+  ov.append(box); ov.hidden = false;
+  document.body.classList.add('modal-open');
+  modalOnClose = opt.onClose || null; modalKey = opt.onKey || null;
+  setTimeout(() => { const f = box.querySelector('[autofocus]') || box.querySelector('input,button'); if (f) f.focus(); }, 30);
+}
+function closeModal(){
+  const ov = $('#overlay'); if (ov.hidden) return;
+  ov.hidden = true; ov.innerHTML = '';
+  document.body.classList.remove('modal-open');
+  modalKey = null;
+  const cb = modalOnClose; modalOnClose = null; if (cb) cb();
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+}
+$('#overlay').addEventListener('mousedown', e => { if (e.target.id === 'overlay') closeModal(); });
+
+function choiceDialog(title, msg, choices){
+  return new Promise(res => {
+    let done = false; const fin = v => { if (done) return; done = true; res(v); };
+    openModal(h('div',{},
+      h('h3',{},title), msg ? h('p',{},msg) : null,
+      h('div',{class:'row'}, choices.map(c => h('button',{class:'btn '+(c.cls || ''), onclick:() => { fin(c.value); closeModal(); }}, c.label)))
+    ), {onClose:() => fin(null)});
+  });
+}
+function confirmDialog(title, msg, ok = '확인', danger = false){
+  return choiceDialog(title, msg, [{label:'취소', value:false}, {label:ok, value:true, cls:danger ? 'danger' : 'primary'}]).then(v => !!v);
+}
+function promptDialog(title, label, value = ''){
+  return new Promise(res => {
+    let done = false; const fin = v => { if (done) return; done = true; res(v); };
+    const input = h('input',{type:'text', value, maxlength:'80', autofocus:true});
+    const submit = e => { e.preventDefault(); const v = input.value.trim(); if (!v){ input.focus(); return; } fin(v); closeModal(); };
+    openModal(h('form',{onsubmit:submit},
+      h('h3',{},title),
+      h('div',{class:'field'}, h('label',{},label), input),
+      h('div',{class:'row'}, h('button',{type:'button', class:'btn', onclick:() => { fin(null); closeModal(); }},'취소'), h('button',{type:'submit', class:'btn primary'},'확인'))
+    ), {onClose:() => fin(null)});
+    setTimeout(() => input.select(), 40);
+  });
+}
+const toastMap = new Map();
+function toast(msg, opt = {}){
+  let el = opt.id && toastMap.get(opt.id);
+  if (!el){ el = h('div',{class:'toast'}); const box = $('#toasts'); box.append(el); if (opt.id) toastMap.set(opt.id, el);
+    [...box.children].filter(c => ![...toastMap.values()].includes(c)).slice(0, -2).forEach(c => c.remove()); }
+  el.className = 'toast' + (opt.type === 'error' ? ' error' : '');
+  el.textContent = msg;
+  clearTimeout(el._t);
+  if (!opt.sticky) el._t = setTimeout(() => { el.remove(); if (opt.id) toastMap.delete(opt.id); }, opt.ms || 2400);
+}
+function dismissToast(id){ const el = toastMap.get(id); if (el){ el.remove(); toastMap.delete(id); } }
+
+/* =========================================================
+   등급 선택 시트 (클릭/터치)
+   ========================================================= */
+function openSheet(id){
+  const l = cur(); const m = l.movies[id]; if (!m) return;
+  const loc = locate(l, id);
+  const pick = t => { closeModal(); moveMovie(id, t, null); toast(t === 'U' ? '미분류로 되돌렸어요' : `${t}등급에 배치했어요`); };
+  openModal(h('div',{},
+    h('div',{class:'sheet-head'}, posterEl(m),
+      h('div',{}, h('b',{},m.title), h('span',{}, `${m.year ? m.year+'년' : '연도 미상'} · 현재 ${loc.zone === 'U' ? '미분류' : loc.zone+'등급'}`))),
+    h('div',{class:'tier-pick'}, TIERS.map(t =>
+      h('button',{class:loc.zone === t ? 'cur' : '', style:`background:${TIER_INFO[t].color}`, title:TIER_INFO[t].desc, onclick:() => pick(t)}, t, h('small',{}, ['최고','매우 좋음','좋음','보통','아쉬움'][TIERS.indexOf(t)])))),
+    h('div',{class:'sheet-actions'},
+      h('button',{class:'btn', disabled:loc.zone === 'U', onclick:() => pick('U')}, '↩ 미분류로 되돌리기'),
+      h('button',{class:'btn', onclick:() => movieForm(m)}, '✎ 영화 정보 수정'),
+      h('button',{class:'btn danger', onclick:async () => {
+        const ok = await confirmDialog('영화를 삭제할까요?', `‘${m.title}’을(를) 이 티어리스트에서 삭제합니다. 다른 티어리스트에는 영향이 없어요.`, '삭제', true);
+        if (ok){ removeMovie(id); toast('삭제했어요'); }
+      }}, '🗑 이 목록에서 삭제'))
+  ), {onKey:e => {
+    const k = e.key.toUpperCase(); const map = {'1':'S','2':'A','3':'B','4':'C','5':'D'};
+    const t = TIERS.includes(k) ? k : map[k];
+    if (t){ e.preventDefault(); pick(t); } else if (k === 'U' && loc.zone !== 'U'){ e.preventDefault(); pick('U'); }
+  }});
+}
+
+/* =========================================================
+   이미지 처리 (포스터 압축 저장)
+   ========================================================= */
+function blobToDataURL(blob, maxW = 160){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob); const img = new Image();
+    img.onload = () => {
+      const r = Math.min(1, maxW / img.naturalWidth);
+      const w = Math.max(1, Math.round(img.naturalWidth * r)), hh = Math.max(1, Math.round(img.naturalHeight * r));
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = hh;
+      const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,hh); ctx.drawImage(img, 0, 0, w, hh);
+      URL.revokeObjectURL(url);
+      try{ res(cv.toDataURL('image/jpeg', 0.82)); }catch(err){ rej(err); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('이미지를 읽을 수 없어요')); };
+    img.src = url;
+  });
+}
+async function urlToDataURL(url){
+  const r = await fetch(url, {mode:'cors'});
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return blobToDataURL(await r.blob());
+}
+
+/* =========================================================
+   검색 (TMDB + 내장 목록)
+   ========================================================= */
+function getKey(){ try{ return (localStorage.getItem(KEY_KEY) || '').trim(); }catch(e){ return ''; } }
+function updateSearchMode(){ $('#searchMode').textContent = getKey() ? 'TMDB 연결됨' : '내장 목록 모드'; }
+async function tmdbSearch(q, key){
+  const isToken = key.length > 60;
+  const url = new URL('https://api.themoviedb.org/3/search/movie');
+  url.searchParams.set('query', q); url.searchParams.set('language', 'ko-KR');
+  url.searchParams.set('include_adult', 'false'); url.searchParams.set('page', '1');
+  if (!isToken) url.searchParams.set('api_key', key);
+  const headers = {accept:'application/json'}; if (isToken) headers.Authorization = 'Bearer ' + key;
+  let r;
+  try{ r = await fetch(url, {headers}); }catch(e){ throw new Error('네트워크에 연결할 수 없어요'); }
+  if (r.status === 401){ const err = new Error('API 키가 올바르지 않아요'); err.auth = true; throw err; }
+  if (!r.ok) throw new Error('검색 서버 오류 (' + r.status + ')');
+  const j = await r.json();
+  return (j.results || []).slice(0, 15).map(x => ({
+    title:x.title || x.original_title, original:x.original_title,
+    year:x.release_date ? parseInt(x.release_date.slice(0,4), 10) || null : null,
+    thumb:x.poster_path ? IMG_BASE + 'w92' + x.poster_path : null,
+    posterUrl:x.poster_path ? IMG_BASE + 'w185' + x.poster_path : null,
+    tmdbId:x.id, source:'tmdb'
+  }));
+}
+function catalogSearch(q){
+  const n = norm(q);
+  return CATALOG.filter(([t]) => norm(t).includes(n)).slice(0, 15).map(([t,y]) => ({title:t, year:y, source:'catalog'}));
+}
+async function doSearch(q){
+  q = q.trim(); if (!q) return;
+  const key = getKey();
+  $('#results').innerHTML = ''; $('#searchNote').textContent = '검색 중…';
+  let results = [], note = '';
+  if (key){
+    try{ results = await tmdbSearch(q, key); if (!results.length) note = '검색 결과가 없어요. 다른 제목으로 찾거나 직접 등록해 보세요.'; }
+    catch(err){ results = catalogSearch(q); note = `TMDB 검색 실패: ${err.message}. 내장 목록에서 찾은 결과예요.`; }
+  } else {
+    results = catalogSearch(q);
+    note = results.length ? '내장 목록(포스터 없음) 결과예요. ' : '내장 목록에 없는 영화예요. ';
+  }
+  lastResults = results; lastNote = note;
+  renderResults(results, note);
+}
+function renderResults(results, note){
+  const box = $('#results'); box.innerHTML = '';
+  const noteEl = $('#searchNote'); noteEl.innerHTML = '';
+  noteEl.append(note);
+  if (!getKey()) noteEl.append(h('a',{href:'#', onclick:e => { e.preventDefault(); openSettings(); }}, '검색 설정'), '에서 TMDB를 연결하면 포스터와 함께 거의 모든 영화를 찾을 수 있어요.');
+  results.forEach(r => {
+    const added = isInList(r);
+    const thumb = r.thumb ? h('img',{class:'thumb', src:r.thumb, alt:'', loading:'lazy'}) : (() => { const [c1,c2] = palette(r.title); return h('div',{class:'thumb ph', style:`background:linear-gradient(160deg,${c1},${c2})`}, r.title.slice(0,8)); })();
+    const btn = h('button',{class:'btn sm' + (added ? '' : ' primary'), disabled:added}, added ? '추가됨' : '추가');
+    btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = '추가 중…';
+      let poster = null;
+      if (r.posterUrl){ try{ poster = await urlToDataURL(r.posterUrl); }catch(e){ poster = r.posterUrl; } }
+      addMovie({title:r.title, year:r.year, poster, tmdbId:r.tmdbId, source:r.source});
+      toast(`‘${r.title}’을(를) 미분류에 추가했어요`);
+    });
+    box.append(h('div',{class:'res'}, thumb,
+      h('div',{class:'meta'},
+        h('b',{}, r.title, r.source === 'catalog' ? h('span',{class:'tag'},'내장') : null),
+        h('span',{}, [r.year ? r.year+'년' : '연도 미상', r.original && norm(r.original) !== norm(r.title) ? r.original : ''].filter(Boolean).join(' · '))),
+      btn));
+  });
+}
+$('#searchForm').addEventListener('submit', e => { e.preventDefault(); doSearch($('#q').value); });
+
+/* =========================================================
+   직접 등록 / 정보 수정
+   ========================================================= */
+function movieForm(existing){
+  let poster = existing ? existing.poster : null;
+  const title = h('input',{type:'text', value:existing ? existing.title : '', maxlength:'200', required:true, autofocus:true, placeholder:'예: 우리들'});
+  const year = h('input',{type:'number', value:existing && existing.year ? existing.year : '', min:'1888', max:'2100', inputmode:'numeric', placeholder:'예: 2016'});
+  const file = h('input',{type:'file', accept:'image/*', hidden:true});
+  const prevWrap = h('div',{});
+  const removeBtn = h('button',{type:'button', class:'btn sm', onclick:() => { poster = null; drawPrev(); }}, '포스터 빼기');
+  function drawPrev(){
+    prevWrap.innerHTML = '';
+    prevWrap.append(posterEl({title:title.value.trim() || '포스터', poster}));
+    removeBtn.hidden = !poster;
+  }
+  title.addEventListener('input', () => { if (!poster) drawPrev(); });
+  file.addEventListener('change', async () => {
+    const f = file.files[0]; if (!f) return;
+    try{ poster = await blobToDataURL(f, 180); drawPrev(); }catch(e){ toast(e.message, {type:'error'}); }
+    file.value = '';
+  });
+  const submit = e => {
+    e.preventDefault();
+    const t = title.value.trim(); if (!t){ title.focus(); return; }
+    const y = year.value ? parseInt(year.value, 10) : null;
+    if (y && (y < 1888 || y > 2100)){ toast('개봉연도를 확인해 주세요 (1888~2100)', {type:'error'}); year.focus(); return; }
+    if (existing){
+      Object.assign(existing, {title:t, year:y, poster});
+      closeModal(); touch(); toast('영화 정보를 수정했어요');
+    } else {
+      closeModal(); addMovie({title:t, year:y, poster, source:'manual'}); toast(`‘${t}’을(를) 미분류에 추가했어요`);
+    }
+  };
+  openModal(h('form',{onsubmit:submit},
+    h('h3',{}, existing ? '영화 정보 수정' : '영화 직접 등록'),
+    existing ? null : h('p',{},'검색되지 않는 영화도 등록해서 똑같이 분류할 수 있어요.'),
+    h('div',{class:'field'}, h('label',{},'제목 *'), title),
+    h('div',{class:'field'}, h('label',{},'개봉연도'), year),
+    h('div',{class:'field'}, h('span',{class:'lb'},'포스터'),
+      h('div',{class:'poster-pick'}, h('div',{style:'width:64px;flex:none'}, prevWrap),
+        h('div',{style:'display:flex;flex-direction:column;gap:6px;align-items:flex-start'},
+          h('button',{type:'button', class:'btn sm', onclick:() => file.click()}, '이미지 선택'), removeBtn,
+          h('span',{class:'help'},'선택하지 않으면 제목으로 만든 기본 포스터가 쓰여요.'))), file),
+    h('div',{class:'row'}, h('button',{type:'button', class:'btn', onclick:closeModal},'취소'), h('button',{type:'submit', class:'btn primary'}, existing ? '저장' : '등록'))
+  ));
+  drawPrev();
+}
+$('#btnManual').addEventListener('click', () => movieForm(null));
+
+/* =========================================================
+   티어리스트 관리
+   ========================================================= */
+$('#listSelect').addEventListener('change', e => { state.activeId = e.target.value; lastResults = null; $('#results').innerHTML = ''; $('#searchNote').textContent = ''; save(); render(); });
+$('#btnNew').addEventListener('click', () => {
+  const name = h('input',{type:'text', value:'', maxlength:'80', autofocus:true, placeholder:'예: 한국 영화 티어'});
+  const opt = (v, label, checked) => h('label',{}, h('input',{type:'radio', name:'mode', value:v, checked}), label);
+  const form = h('form',{onsubmit:e => {
+      e.preventDefault();
+      const n = name.value.trim(); if (!n){ name.focus(); return; }
+      const mode = form.querySelector('input[name=mode]:checked').value;
+      const l = newList(n, mode);
+      state.lists.push(l); state.activeId = l.id; lastResults = null; $('#results').innerHTML = ''; $('#searchNote').textContent = '';
+      closeModal(); save(); render(); toast(`‘${n}’ 티어리스트를 만들었어요`);
+    }},
+    h('h3',{},'새 티어리스트'),
+    h('div',{class:'field'}, h('label',{},'목록 이름'), name),
+    h('div',{class:'field'}, h('span',{class:'lb'},'시작 방법'),
+      h('div',{class:'radio'}, opt('empty','빈 목록으로 시작', true), opt('seed','초기 테스트 영화 8편 넣기'), opt('copy',`현재 목록의 영화 ${Object.keys(cur().movies).length}편 가져오기 (모두 미분류)`))),
+    h('div',{class:'row'}, h('button',{type:'button', class:'btn', onclick:closeModal},'취소'), h('button',{type:'submit', class:'btn primary'},'만들기')));
+  openModal(form);
+});
+$('#listTitle').addEventListener('click', async () => {
+  const l = cur(); const n = await promptDialog('목록 이름 바꾸기', '새 이름', l.name);
+  if (n){ l.name = n; touch(); }
+});
+$('#btnDeleteList').addEventListener('click', async () => {
+  const l = cur();
+  const ok = await confirmDialog('이 티어리스트를 삭제할까요?', `‘${l.name}’과(와) 안에 있는 영화 ${Object.keys(l.movies).length}편의 분류 결과가 삭제됩니다. 되돌릴 수 없으니 필요하면 먼저 내보내기로 백업하세요.`, '삭제', true);
+  if (!ok) return;
+  state.lists = state.lists.filter(x => x.id !== l.id);
+  if (!state.lists.length) state.lists.push(newList('나의 영화 티어', 'empty'));
+  state.activeId = state.lists[0].id; save(); render(); toast('티어리스트를 삭제했어요');
+});
+$('#btnReset').addEventListener('click', async () => {
+  const l = cur(); const n = TIERS.reduce((s,t) => s + l.tiers[t].length, 0);
+  const ok = await confirmDialog('전체 초기화', `분류된 영화 ${n}편을 모두 미분류로 되돌립니다. 영화 자체는 삭제되지 않아요.`, '초기화', true);
+  if (!ok) return;
+  TIERS.forEach(t => { l.unranked.push(...l.tiers[t]); l.tiers[t] = []; });
+  touch(); toast('모든 영화를 미분류로 되돌렸어요');
+});
+
+/* =========================================================
+   내보내기 · 가져오기
+   ========================================================= */
+$('#btnExport').addEventListener('click', () => {
+  const data = {app:APP_ID, version:1, exportedAt:new Date().toISOString(), activeId:state.activeId, lists:state.lists};
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  download(url, `영화티어리스트_백업_${stamp(new Date())}.json`);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast(`티어리스트 ${state.lists.length}개를 파일로 내보냈어요`);
+});
+$('#btnImport').addEventListener('click', () => $('#importFile').click());
+$('#importFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let data;
+  try{ data = JSON.parse(await f.text()); }catch(err){ toast('파일을 읽을 수 없어요. 이 페이지에서 내보낸 .json 파일인지 확인해 주세요.', {type:'error', ms:4000}); return; }
+  if (!data || data.app !== APP_ID || !Array.isArray(data.lists)){ toast('영화 티어리스트 백업 파일이 아니에요.', {type:'error', ms:4000}); return; }
+  const lists = data.lists.map(sanitizeList).filter(Boolean);
+  if (!lists.length){ toast('파일에 티어리스트가 없어요.', {type:'error'}); return; }
+  const hasData = state.lists.some(l => Object.keys(l.movies).length) || state.lists.length > 1;
+  let mode = 'replace';
+  if (hasData){
+    mode = await choiceDialog('기존 데이터가 있어요',
+      `파일의 티어리스트 ${lists.length}개를 어떻게 가져올까요? ‘덮어쓰기’를 고르면 이 브라우저의 기존 티어리스트 ${state.lists.length}개는 모두 사라집니다.`,
+      [{label:'취소', value:null}, {label:'추가로 합치기', value:'merge'}, {label:'덮어쓰기', value:'replace', cls:'danger'}]);
+    if (!mode) return;
+  }
+  if (mode === 'replace'){
+    state.lists = lists;
+    state.activeId = lists.some(l => l.id === data.activeId) ? data.activeId : lists[0].id;
+  } else {
+    const names = new Set(state.lists.map(l => l.name));
+    lists.forEach(l => { l.id = uid(); if (names.has(l.name)) l.name += ' (가져옴)'; state.lists.push(l); });
+    state.activeId = lists[0].id;
+  }
+  lastResults = null; $('#results').innerHTML = ''; $('#searchNote').textContent = '';
+  save(); render(); toast(`티어리스트 ${lists.length}개를 가져왔어요`);
+});
+
+/* =========================================================
+   검색 설정 (TMDB 키 · 포스터 자동 연결)
+   ========================================================= */
+function storageUsage(){ try{ return ((localStorage.getItem(LS_KEY) || '').length / 1024 / 1024).toFixed(2); }catch(e){ return '?'; } }
+function openSettings(){
+  const key = getKey();
+  const input = h('input',{type:'password', value:key, placeholder:'API 키 또는 읽기 액세스 토큰 붙여넣기', autocomplete:'off', spellcheck:'false'});
+  const status = h('p',{class:'note', style:'margin:6px 0 0'}, key ? '키가 저장되어 있어요.' : '키 없음 — 내장 목록(약 60편)으로만 검색돼요.');
+  const show = h('button',{type:'button', class:'btn sm', onclick:() => { input.type = input.type === 'password' ? 'text' : 'password'; show.textContent = input.type === 'password' ? '보기' : '숨기기'; }}, '보기');
+  const missing = Object.values(cur().movies).filter(m => !m.poster).length;
+  openModal(h('div',{},
+    h('h3',{},'영화 검색 설정'),
+    h('p',{},'TMDB(The Movie Database)를 연결하면 한국어 제목으로 검색하고 포스터·개봉연도를 자동으로 가져와요. 무료입니다.'),
+    h('div',{class:'setbox'},
+      h('h4',{},'TMDB API 키'),
+      h('ol',{}, h('li',{}, h('a',{href:'https://www.themoviedb.org/signup', target:'_blank', rel:'noopener'},'themoviedb.org'), '에 무료 가입'),
+        h('li',{},'계정 설정 → API에서 ‘API 키’ 또는 ‘API 읽기 액세스 토큰’ 복사'), h('li',{},'아래에 붙여넣고 저장')),
+      h('div',{class:'keyrow field', style:'margin:0'}, input, show),
+      status,
+      h('div',{class:'row', style:'justify-content:flex-start;margin-top:10px'},
+        h('button',{class:'btn sm', onclick:async () => {
+          const k = input.value.trim(); if (!k){ status.textContent = '키를 입력해 주세요.'; return; }
+          status.textContent = '연결 확인 중…';
+          try{ const r = await tmdbSearch('기생충', k); status.textContent = `연결 성공 — ‘기생충’ 검색 결과 ${r.length}건`; }
+          catch(err){ status.textContent = '연결 실패: ' + err.message; }
+        }}, '연결 테스트'),
+        h('button',{class:'btn sm primary', onclick:async () => {
+          const k = input.value.trim();
+          try{ k ? localStorage.setItem(KEY_KEY, k) : localStorage.removeItem(KEY_KEY); }catch(e){}
+          updateSearchMode(); closeModal(); toast(k ? 'API 키를 저장했어요' : 'API 키를 지웠어요');
+          const n = Object.values(cur().movies).filter(m => !m.poster).length;
+          if (k && n){ const ok = await confirmDialog('포스터 연결', `현재 목록에 포스터가 없는 영화가 ${n}편 있어요. 지금 TMDB에서 찾아 연결할까요?`, '연결하기'); if (ok) fillPosters(); }
+        }}, '저장'),
+        key ? h('button',{class:'btn sm danger', onclick:() => { try{ localStorage.removeItem(KEY_KEY); }catch(e){} updateSearchMode(); closeModal(); toast('API 키를 지웠어요'); }}, '키 삭제') : null),
+      h('p',{class:'note'},'키는 이 브라우저에만 저장되고, 내보내기 파일에는 포함되지 않아요.')),
+    h('div',{class:'setbox'},
+      h('h4',{},'포스터 자동 연결'),
+      h('p',{class:'note', style:'margin:0 0 8px'}, `현재 목록에서 포스터가 없는 영화: ${missing}편 (제목·연도로 TMDB에서 찾아 붙여요)`),
+      h('button',{class:'btn sm', disabled:!key || !missing, onclick:() => { closeModal(); fillPosters(); }}, '포스터 찾아 연결하기')),
+    h('div',{class:'setbox'},
+      h('h4',{},'저장 공간'),
+      h('p',{class:'note', style:'margin:0'}, `현재 약 ${storageUsage()}MB 사용 중 (브라우저 한도는 보통 5MB 안팎). 포스터는 작게 압축해 저장해요. 브라우저 데이터를 지우면 함께 사라지니 가끔 내보내기로 백업하세요.`)),
+    h('p',{class:'attrib'},'영화 정보와 포스터는 TMDB API를 사용하지만, 이 페이지는 TMDB의 보증이나 인증을 받은 서비스가 아닙니다.'),
+    h('div',{class:'row'}, h('button',{class:'btn', onclick:closeModal},'닫기'))
+  ), {wide:true});
+}
+$('#btnSettings').addEventListener('click', openSettings);
+
+async function fillPosters(){
+  const key = getKey(); if (!key){ openSettings(); return; }
+  const l = cur(); const targets = Object.values(l.movies).filter(m => !m.poster);
+  if (!targets.length){ toast('포스터가 없는 영화가 없어요'); return; }
+  let ok = 0;
+  for (let i = 0; i < targets.length; i++){
+    const m = targets[i];
+    toast(`포스터 찾는 중… ${i+1}/${targets.length}`, {id:'fill', sticky:true});
+    try{
+      const rs = await tmdbSearch(m.title, key);
+      const pick = rs.find(r => r.posterUrl && m.year && r.year === m.year && norm(r.title) === norm(m.title))
+                || rs.find(r => r.posterUrl && m.year && r.year === m.year)
+                || (!m.year && rs.find(r => r.posterUrl));
+      if (pick){
+        try{ m.poster = await urlToDataURL(pick.posterUrl); }catch(e){ m.poster = pick.posterUrl; }
+        m.tmdbId = pick.tmdbId; if (!m.year && pick.year) m.year = pick.year;
+        ok++; render();
+      }
+    }catch(err){ if (err.auth){ dismissToast('fill'); toast(err.message, {type:'error'}); return; } }
+  }
+  dismissToast('fill');
+  l.updatedAt = Date.now(); save(); render();
+  toast(`${ok}편에 포스터를 연결했어요${ok < targets.length ? ` (못 찾은 ${targets.length-ok}편은 ‘정보 수정’에서 직접 넣을 수 있어요)` : ''}`, {ms:4200});
+}
+
+/* =========================================================
+   티어리스트 이미지 저장 (Canvas 직접 그리기)
+   ========================================================= */
+function loadImg(src){
+  return new Promise(res => {
+    if (!src) return res(null);
+    const im = new Image();
+    if (!src.startsWith('data:')) im.crossOrigin = 'anonymous';
+    const t = setTimeout(() => res(null), 8000);
+    im.onload = () => { clearTimeout(t); res(im); };
+    im.onerror = () => { clearTimeout(t); res(null); };
+    im.src = src;
+  });
+}
+function rr(ctx, x, y, w, hh, r){
+  ctx.beginPath(); ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+hh-r); ctx.quadraticCurveTo(x+w, y+hh, x+w-r, y+hh); ctx.lineTo(x+r, y+hh);
+  ctx.quadraticCurveTo(x, y+hh, x, y+hh-r); ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y); ctx.closePath();
+}
+function wrapLines(ctx, text, maxW, maxLines){
+  const lines = []; let line = ''; let cut = false;
+  for (const ch of String(text)){
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxW && line){
+      lines.push(line.trimEnd()); line = ch.trimStart();
+      if (lines.length === maxLines){ cut = true; break; }
+    } else line = test;
+  }
+  if (!cut && line) lines.push(line);
+  if (cut){
+    let last = lines[maxLines-1];
+    while (last && ctx.measureText(last + '…').width > maxW) last = last.slice(0, -1);
+    lines[maxLines-1] = last + '…';
+  }
+  return lines;
+}
+async function drawTierImage(l){
+  const W = 1080, S = 2, PAD = 44, LABEL = 100, GAP = 14, PW = 104, PH = 156, CAP = 52, IN = 16, RG = 8, HEAD = 118, FOOT = 50;
+  const innerW = W - PAD*2 - LABEL - IN*2;
+  const cols = Math.max(1, Math.floor((innerW + GAP) / (PW + GAP)));
+  const cellH = PH + CAP;
+  const rows = TIERS.map(t => { const n = l.tiers[t].length; const r = Math.ceil(n / cols); return {t, n, h: n ? r*cellH + (r-1)*GAP + IN*2 : 92}; });
+  const H = PAD + HEAD + rows.reduce((s,r) => s + r.h, 0) + RG*(rows.length-1) + FOOT + PAD;
+  const ids = TIERS.flatMap(t => l.tiers[t]);
+  const imgs = {};
+  await Promise.all(ids.map(async id => { imgs[id] = await loadImg(l.movies[id] && l.movies[id].poster); }));
+
+  const cv = document.createElement('canvas'); cv.width = W*S; cv.height = H*S;
+  const ctx = cv.getContext('2d'); ctx.scale(S, S); ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#faf8f4'; ctx.fillRect(0, 0, W, H);
+
+  // 헤더
+  const total = ids.length; const now = new Date();
+  ctx.fillStyle = '#d9453b'; ctx.font = `800 15px ${FONT}`; ctx.textAlign = 'left';
+  ctx.fillText('영화 티어리스트', PAD, PAD + 16);
+  ctx.fillStyle = '#1c1b1a';
+  let fs = 40; ctx.font = `800 ${fs}px ${FONT}`;
+  while (fs > 22 && ctx.measureText(l.name).width > W - PAD*2 - 230){ fs -= 2; ctx.font = `800 ${fs}px ${FONT}`; }
+  const titleLines = wrapLines(ctx, l.name, W - PAD*2 - 230, 1);
+  ctx.fillText(titleLines[0] || '', PAD, PAD + 66);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#1c1b1a'; ctx.font = `700 18px ${FONT}`;
+  ctx.fillText(fmtDate(now) + ' 저장', W - PAD, PAD + 66);
+  ctx.fillStyle = '#6d6a64'; ctx.font = `600 14px ${FONT}`;
+  ctx.fillText(`총 ${total}편`, W - PAD, PAD + 16);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#e6e2db'; ctx.fillRect(PAD, PAD + HEAD - 26, W - PAD*2, 1);
+
+  // 티어 행
+  let y = PAD + HEAD;
+  for (const row of rows){
+    ctx.save(); rr(ctx, PAD, y, W - PAD*2, row.h, 12); ctx.clip();
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(PAD, y, W - PAD*2, row.h);
+    ctx.fillStyle = TIER_INFO[row.t].color; ctx.fillRect(PAD, y, LABEL, row.h);
+    ctx.restore();
+    ctx.strokeStyle = '#e6e2db'; ctx.lineWidth = 1; rr(ctx, PAD + .5, y + .5, W - PAD*2 - 1, row.h - 1, 12); ctx.stroke();
+    ctx.fillStyle = '#1c1b1a'; ctx.textAlign = 'center';
+    ctx.font = `900 46px ${FONT}`; ctx.fillText(row.t, PAD + LABEL/2, y + row.h/2 + 10);
+    ctx.font = `700 12px ${FONT}`; ctx.fillStyle = 'rgba(28,27,26,.65)'; ctx.fillText(`${row.n}편`, PAD + LABEL/2, y + row.h/2 + 32);
+    ctx.textAlign = 'left';
+    if (!row.n){
+      ctx.fillStyle = '#b0aba3'; ctx.font = `600 14px ${FONT}`;
+      ctx.fillText('—', PAD + LABEL + IN + 4, y + row.h/2 + 5);
+    }
+    l.tiers[row.t].forEach((id, i) => {
+      const m = l.movies[id]; const c = i % cols, r = Math.floor(i / cols);
+      const x = PAD + LABEL + IN + c*(PW + GAP), yy = y + IN + r*(cellH + GAP);
+      ctx.save(); rr(ctx, x, yy, PW, PH, 8); ctx.clip();
+      const im = imgs[id];
+      if (im){
+        const ir = im.naturalWidth / im.naturalHeight, tr = PW / PH;
+        let sw = im.naturalWidth, sh = im.naturalHeight, sx = 0, sy = 0;
+        if (ir > tr){ sw = sh * tr; sx = (im.naturalWidth - sw)/2; } else { sh = sw / tr; sy = (im.naturalHeight - sh)/2; }
+        ctx.drawImage(im, sx, sy, sw, sh, x, yy, PW, PH);
+      } else {
+        const hu = hashHue(m.title); const g = ctx.createLinearGradient(x, yy, x + PW*.6, yy + PH);
+        g.addColorStop(0, `hsl(${hu} 42% 56%)`); g.addColorStop(1, `hsl(${(hu+40)%360} 48% 32%)`);
+        ctx.fillStyle = g; ctx.fillRect(x, yy, PW, PH);
+        ctx.fillStyle = '#fff'; ctx.font = `800 14px ${FONT}`; ctx.textAlign = 'center';
+        const ls = wrapLines(ctx, m.title, PW - 14, 4); const sy0 = yy + PH/2 - (ls.length-1)*9 + 5;
+        ls.forEach((t, k) => ctx.fillText(t, x + PW/2, sy0 + k*18));
+        ctx.textAlign = 'left';
+      }
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(0,0,0,.08)'; rr(ctx, x + .5, yy + .5, PW - 1, PH - 1, 8); ctx.stroke();
+      ctx.fillStyle = '#1c1b1a'; ctx.font = `700 13px ${FONT}`;
+      const tl = wrapLines(ctx, m.title, PW, 2);
+      tl.forEach((t, k) => ctx.fillText(t, x, yy + PH + 17 + k*16));
+      ctx.fillStyle = '#6d6a64'; ctx.font = `500 12px ${FONT}`;
+      ctx.fillText(m.year ? m.year + '년' : '연도 미상', x, yy + PH + 17 + tl.length*16 + 1);
+    });
+    y += row.h + RG;
+  }
+  // 푸터
+  ctx.fillStyle = '#a19d96'; ctx.font = `600 13px ${FONT}`; ctx.textAlign = 'right';
+  ctx.fillText('S 최고 · A 매우 좋음 · B 좋음 · C 보통 · D 아쉬움', W - PAD, H - PAD + 4);
+  return cv;
+}
+async function exportImage(){
+  const l = cur();
+  const total = TIERS.reduce((s,t) => s + l.tiers[t].length, 0);
+  if (!total){ const ok = await confirmDialog('분류된 영화가 없어요', '등급에 배치된 영화가 없습니다. 빈 티어표로 저장할까요?', '그래도 저장'); if (!ok) return; }
+  toast('이미지를 만드는 중…', {id:'img', sticky:true});
+  try{
+    const cv = await drawTierImage(l);
+    const blob = await new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('이미지 변환 실패')), 'image/jpeg', 0.92));
+    dismissToast('img');
+    showPreview(blob, l);
+  }catch(err){ dismissToast('img'); toast('이미지를 만들지 못했어요: ' + err.message, {type:'error', ms:4000}); }
+}
+function showPreview(blob, l){
+  const url = URL.createObjectURL(blob);
+  const name = `${safeName(l.name)}_${stamp(new Date())}.jpg`;
+  const file = new File([blob], name, {type:'image/jpeg'});
+  const canShare = !!(navigator.canShare && navigator.canShare({files:[file]}));
+  openModal(h('div',{},
+    h('h3',{},'티어리스트 이미지'),
+    h('p',{}, `${name} · ${(blob.size/1024/1024).toFixed(1)}MB`),
+    h('img',{class:'preview-img', src:url, alt:`${l.name} 티어리스트 이미지 미리보기`}),
+    h('div',{class:'row'},
+      h('button',{class:'btn', onclick:closeModal},'닫기'),
+      canShare ? h('button',{class:'btn', onclick:async () => {
+        try{ await navigator.share({files:[file], title:l.name}); }catch(e){ if (e.name !== 'AbortError') toast('공유하지 못했어요. 다운로드 후 공유해 주세요.', {type:'error'}); }
+      }}, '공유하기') : null,
+      h('button',{class:'btn primary', onclick:() => { download(url, name); toast('이미지를 저장했어요'); }}, '이미지 다운로드'))
+  ), {wide:true, onClose:() => setTimeout(() => URL.revokeObjectURL(url), 1000)});
+}
+$('#btnImage').addEventListener('click', exportImage);
+
+/* =========================================================
+   모바일 탭 · 시작
+   ========================================================= */
+function setTab(t){
+  document.body.dataset.tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+}
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); window.scrollTo({top:0}); }));
+function syncTabsTop(){ $('#tabs').style.top = $('.top').offsetHeight + 'px'; }
+window.addEventListener('resize', syncTabsTop);
+window.addEventListener('storage', e => { if (e.key === LS_KEY){ load(); render(); toast('다른 탭에서 변경된 내용을 불러왔어요'); } });
+
+load();
+setTab('library');
+render();
+syncTabsTop();
+</script>
+</body>
+</html>
