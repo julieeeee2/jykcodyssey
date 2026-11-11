@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light" />
+<title>습관 잔디밭</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f8fa; --card:#ffffff; --line:#d8dee4; --text:#1f2328; --muted:#656d76;
+  --accent:#1a7f37; --accent-hover:#166c2e; --danger:#cf222e; --focus:#0969da;
+  --lv0:#ebedf0; --lv1:#9be9a8; --lv2:#40c463; --lv3:#30a14e; --lv4:#216e39;
+  --cell:12px; --gap:3px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;font-size:15px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,input{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#f6f8fa;color:var(--text);border-radius:6px;padding:6px 10px;min-height:34px}
+button:not(.cell):hover{background:#eef1f4}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,.cell:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:var(--accent-hover)}
+button.danger{color:var(--danger)}
+
+.topbar{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px}
+.topbar h1{font-size:18px;margin:0}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+
+main{max-width:1200px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.stat .label{display:block;color:var(--muted);font-size:13px}
+.stat strong{font-size:22px}
+.stat small{color:var(--muted);margin-left:6px}
+
+.layout{display:grid;gap:16px}
+@media (min-width:960px){
+  .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .layout{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start}
+}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.card-head h2{font-size:16px;margin:0}
+.muted{color:var(--muted);font-size:13px}
+
+/* 잔디 */
+.grass-scroll{overflow-x:auto;padding:2px 2px 8px}
+.grass{display:grid;gap:var(--gap);width:max-content;grid-template-rows:16px repeat(7,var(--cell))}
+.wk-label,.m-label{font-size:11px;color:var(--muted);white-space:nowrap;line-height:1}
+.wk-label{align-self:center;justify-self:end;padding-right:4px}
+.m-label{align-self:center;justify-self:start}
+.blank{display:block}
+.cell{display:inline-block;width:var(--cell);height:var(--cell);min-width:0;min-height:0;padding:0;margin:0;border:0;border-radius:2px;background:var(--lv0)}
+button.cell:hover{filter:brightness(.92)}
+.cell.lv-none{background:#fff;box-shadow:inset 0 0 0 1px #e1e4e8}
+.cell.lv0{background:var(--lv0)}
+.cell.lv1{background:var(--lv1)}
+.cell.lv2{background:var(--lv2)}
+.cell.lv3{background:var(--lv3)}
+.cell.lv4{background:var(--lv4)}
+.cell.today{outline:2px solid var(--text);outline-offset:1px}
+.cell.sel{outline:2px solid var(--focus);outline-offset:1px}
+.legend{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:12px;color:var(--muted);margin-top:10px}
+.legend .gap{width:10px}
+
+/* 습관 목록 */
+.sel-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.sel-rate{font-size:13px;color:var(--muted);margin-bottom:10px}
+.habit-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.habit{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px;min-width:0}
+.habit.off{opacity:.6}
+.habit-top{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.check{display:inline-flex}
+.check input{width:22px;height:22px;margin:0;accent-color:var(--accent);flex:none}
+.hname{font-weight:600;overflow-wrap:anywhere;min-width:0;flex:1 1 auto}
+.badge{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 8px;white-space:nowrap}
+.hmeta{font-size:13px;color:var(--muted)}
+.hactions{display:flex;flex-wrap:wrap;gap:6px}
+.hactions button{min-height:30px;padding:3px 8px;font-size:13px}
+.empty{color:var(--muted);text-align:center;margin:16px 0}
+details.archive{margin-top:14px}
+details.archive summary{cursor:pointer;color:var(--muted)}
+
+/* 툴팁·토스트 */
+.tip{position:fixed;z-index:20;background:#1f2328;color:#fff;font-size:12px;padding:6px 8px;border-radius:6px;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1f2328;color:#fff;padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;max-width:90vw}
+.toast.show{opacity:1}
+
+/* 대화상자 */
+dialog{border:1px solid var(--line);border-radius:12px;padding:0;width:min(92vw,420px);color:var(--text);background:var(--card)}
+dialog::backdrop{background:rgba(31,35,40,.4)}
+.dlg{padding:18px;display:grid;gap:12px;margin:0}
+.dlg h3{margin:0;font-size:17px}
+.dlg label.field{display:grid;gap:6px;font-size:14px}
+.dlg input[type=text]{padding:8px 10px;border:1px solid var(--line);border-radius:6px;min-height:38px;width:100%}
+.dlg fieldset{border:0;padding:0;margin:0;display:grid;gap:8px}
+.dlg legend{font-size:14px;padding:0;margin-bottom:4px}
+.days{display:flex;flex-wrap:wrap;gap:6px}
+.days label{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;cursor:pointer;user-select:none}
+.days input{accent-color:var(--accent);margin:0}
+.dlg-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.err{color:var(--danger);font-size:13px;margin:0;min-height:1.2em}
+.note{color:var(--muted);font-size:13px;margin:16px 0 0}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>습관 잔디밭</h1>
+  <div class="actions">
+    <button type="button" id="btnExport">내보내기</button>
+    <button type="button" id="btnImport">가져오기</button>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden />
+    <button type="button" id="btnReset" class="danger">초기화</button>
+  </div>
+</header>
+
+<main>
+  <section class="stats" aria-label="요약 통계">
+    <div class="stat">
+      <span class="label">전체 달성률 (최근 1년)</span>
+      <strong id="sRate">-</strong><small id="sRateDetail"></small>
+    </div>
+    <div class="stat">
+      <span class="label">연속 실천일</span>
+      <strong id="sStreak">0일</strong>
+    </div>
+    <div class="stat">
+      <span class="label">총 완료 횟수 (최근 1년)</span>
+      <strong id="sDone">0</strong><small>회</small>
+    </div>
+    <div class="stat">
+      <span class="label">활성 습관</span>
+      <strong id="sActive">0</strong><small>개</small>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="card" aria-labelledby="grassTitle">
+      <div class="card-head">
+        <h2 id="grassTitle">최근 1년 달성 현황</h2>
+        <span class="muted" id="rangeLabel"></span>
+      </div>
+      <div class="grass-scroll" id="grassScroll">
+        <div class="grass" id="grass"></div>
+      </div>
+      <div class="legend" aria-label="범례">
+        <span>0%</span>
+        <span class="cell lv0"></span>
+        <span class="cell lv1"></span>
+        <span class="cell lv2"></span>
+        <span class="cell lv3"></span>
+        <span class="cell lv4"></span>
+        <span>100%</span>
+        <span class="gap"></span>
+        <span class="cell lv-none"></span>
+        <span>실천 대상 없음</span>
+      </div>
+      <p class="muted" style="margin:12px 0 0">
+        날짜 칸을 누르면 그 날의 습관을 체크하거나 수정할 수 있습니다.
+        연속 실천일은 실천 대상을 모두 완료한 날이 이어진 날 수이며, 오늘이 아직 미완료면 어제까지 계산합니다.
+      </p>
+    </section>
+
+    <section class="card" aria-labelledby="habitTitle">
+      <div class="card-head">
+        <h2 id="habitTitle">습관</h2>
+        <button type="button" id="btnAdd" class="primary">+ 습관 추가</button>
+      </div>
+      <div class="sel-bar">
+        <span>체크 날짜 <strong id="selLabel"></strong></span>
+        <button type="button" id="btnToday">오늘로</button>
+      </div>
+      <div class="sel-rate" id="selRate"></div>
+      <ul class="habit-list" id="habitList"></ul>
+      <p class="empty" id="emptyMsg" hidden>아직 습관이 없습니다. “+ 습관 추가”를 눌러 시작해 보세요.</p>
+      <details class="archive" id="archiveBox">
+        <summary id="archiveSummary">보관된 습관</summary>
+        <ul class="habit-list" id="archiveList" style="margin-top:8px"></ul>
+      </details>
+    </section>
+  </div>
+
+  <p class="note">
+    데이터는 이 브라우저에 자동 저장되며, 로그인이나 서버 없이 동작합니다. 다른 기기와는 자동으로 동기화되지 않으므로 브라우저 데이터를 지우기 전에 내보내기로 백업해 두세요.
+  </p>
+</main>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form class="dlg" id="dlgForm" novalidate>
+    <h3 id="dlgTitle">습관 추가</h3>
+    <label class="field">
+      습관 이름
+      <input type="text" id="dlgName" maxlength="40" placeholder="예: 물 2L 마시기" autocomplete="off" />
+    </label>
+    <fieldset>
+      <legend>실천 요일</legend>
+      <div class="days">
+        <label><input type="checkbox" name="day" value="1" />월</label>
+        <label><input type="checkbox" name="day" value="2" />화</label>
+        <label><input type="checkbox" name="day" value="3" />수</label>
+        <label><input type="checkbox" name="day" value="4" />목</label>
+        <label><input type="checkbox" name="day" value="5" />금</label>
+        <label><input type="checkbox" name="day" value="6" />토</label>
+        <label><input type="checkbox" name="day" value="0" />일</label>
+      </div>
+      <div class="days">
+        <button type="button" id="presetAll">매일</button>
+        <button type="button" id="presetWeek">평일</button>
+      </div>
+    </fieldset>
+    <p class="err" id="dlgErr" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="button" id="dlgCancel">취소</button>
+      <button type="submit" class="primary">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+const STORAGE_KEY = 'habit-grass-v1';
+const WINDOW_DAYS = 365;
+const DAY_MS = 86400000;
+const WD = ['일','월','화','수','목','금','토'];
+const WD_ORDER = [1,2,3,4,5,6,0];
+const $ = id => document.getElementById(id);
+
+/* ---------- 날짜 유틸 (UTC 기준 계산: DST·윤년 영향 없음) ---------- */
+const pad = n => String(n).padStart(2,'0');
+const keyOf = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+const toMs = k => { const [y,m,d] = k.split('-').map(Number); return Date.UTC(y, m-1, d); };
+const fromMs = ms => { const d = new Date(ms); return keyOf(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate()); };
+const addDays = (k,n) => fromMs(toMs(k) + n*DAY_MS);
+const diffDays = (a,b) => Math.round((toMs(b)-toMs(a))/DAY_MS);
+const wdOf = k => new Date(toMs(k)).getUTCDay();
+const isKey = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && fromMs(toMs(s)) === s;
+const todayKey = () => { const d = new Date(); return keyOf(d.getFullYear(), d.getMonth()+1, d.getDate()); };
+const windowStart = t => addDays(t, -(WINDOW_DAYS-1));
+const krDate = k => { const [y,m,d] = k.split('-').map(Number); return `${y}년 ${m}월 ${d}일`; };
+const byStart = (a,b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0;
+
+/* ---------- 상태 ---------- */
+const emptyState = () => ({ habits: [], records: {} });
+let storageOk = true;
+let state = loadState();
+const ui = { selected: null, focusId: null, scrolled: false };
+
+function newId(){ return 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function loadState(){
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch(e) { storageOk = false; return emptyState(); }
+  if (!raw) return emptyState();
+  try { return normalizeState(JSON.parse(raw)); }
+  catch(e) {
+    try { localStorage.setItem(STORAGE_KEY + '-broken-' + Date.now(), raw); } catch(_) {}
+    alert('저장된 데이터를 읽을 수 없어 새로 시작합니다.\n손상된 원본은 브라우저 저장소에 따로 보관했습니다.');
+    return emptyState();
+  }
+}
+
+function persist(){
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e) {
+    if (storageOk) {
+      storageOk = false;
+      alert('브라우저 저장소에 저장할 수 없습니다. 페이지를 닫으면 변경 내용이 사라질 수 있으니 내보내기로 백업해 주세요.');
+    }
+  }
+}
+
+/* ---------- 데이터 검증 (가져오기·불러오기 공통) ---------- */
+function normalizeState(raw){
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('데이터 구조가 올바르지 않습니다.');
+  if (!Array.isArray(raw.habits)) throw new Error('습관 목록이 없습니다.');
+
+  const ids = new Set();
+  const habits = raw.habits.map((h, i) => {
+    const no = i + 1;
+    if (!h || typeof h !== 'object') throw new Error(`${no}번째 습관 형식이 올바르지 않습니다.`);
+    if (typeof h.id !== 'string' || !h.id || ids.has(h.id)) throw new Error(`${no}번째 습관 id가 올바르지 않습니다.`);
+    ids.add(h.id);
+
+    const name = typeof h.name === 'string' ? h.name.trim() : '';
+    if (!name || name.length > 40) throw new Error(`${no}번째 습관 이름이 올바르지 않습니다.`);
+
+    if (!Array.isArray(h.schedules) || h.schedules.length === 0) throw new Error(`${no}번째 습관 요일 정보가 없습니다.`);
+    const schedules = h.schedules.map(s => {
+      if (!s || typeof s !== 'object' || !isKey(s.start) || !Array.isArray(s.days)) throw new Error(`${no}번째 습관 요일 정보가 올바르지 않습니다.`);
+      if (s.days.length === 0 || !s.days.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) throw new Error(`${no}번째 습관 요일 값이 올바르지 않습니다.`);
+      return { start: s.start, days: [...new Set(s.days)].sort((a,b) => a-b) };
+    }).sort(byStart);
+    if (new Set(schedules.map(s => s.start)).size !== schedules.length) throw new Error(`${no}번째 습관 요일 기간이 겹칩니다.`);
+
+    if (!Array.isArray(h.periods)) throw new Error(`${no}번째 습관 기간 정보가 없습니다.`);
+    const periods = h.periods.map(p => {
+      if (!p || typeof p !== 'object' || !isKey(p.start) || !(p.end === null || isKey(p.end)) || (p.end !== null && p.end < p.start))
+        throw new Error(`${no}번째 습관 기간 정보가 올바르지 않습니다.`);
+      return { start: p.start, end: p.end };
+    }).sort(byStart);
+
+    return { id: h.id, name, schedules, periods };
+  });
+
+  const records = {};
+  if (raw.records !== undefined && raw.records !== null) {
+    if (typeof raw.records !== 'object' || Array.isArray(raw.records)) throw new Error('기록 형식이 올바르지 않습니다.');
+    for (const [k, v] of Object.entries(raw.records)) {
+      if (!isKey(k)) throw new Error(`기록 날짜가 올바르지 않습니다: ${k}`);
+      if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`${k} 기록 형식이 올바르지 않습니다.`);
+      const day = {};
+      for (const [id, on] of Object.entries(v)) {
+        if (typeof on !== 'boolean') throw new Error(`${k} 기록 값이 올바르지 않습니다.`);
+        if (on && ids.has(id)) day[id] = true;
+      }
+      if (Object.keys(day).length) records[k] = day;
+    }
+  }
+  return { habits, records };
+}
+
+/* ---------- 계산 ---------- */
+const isArchived = h => h.periods.length === 0 || h.periods[h.periods.length-1].end !== null;
+const isActiveOn = (h,k) => h.periods.some(p => p.start <= k && (p.end === null || k < p.end));
+function scheduleOn(h,k){
+  let days = null;
+  for (const s of h.schedules) { if (s.start <= k) days = s.days; else break; }
+  return days;
+}
+function isTarget(h,k){
+  if (!isActiveOn(h,k)) return false;
+  const days = scheduleOn(h,k);
+  return !!days && days.includes(wdOf(k));
+}
+const targetsOn = k => state.habits.filter(h => isTarget(h,k));
+const isDone = (k,id) => !!(state.records[k] && state.records[k][id]);
+
+function dayStat(k){
+  const t = targetsOn(k);
+  const done = t.reduce((n,h) => n + (isDone(k,h.id) ? 1 : 0), 0);
+  return { total: t.length, done, rate: t.length ? done / t.length : null };
+}
+
+function windowKeys(t){
+  const keys = [];
+  for (let k = windowStart(t); k <= t; k = addDays(k,1)) keys.push(k);
+  return keys;
+}
+
+function summarize(t){
+  const per = new Map(state.habits.map(h => [h.id, { total:0, done:0 }]));
+  let total = 0, done = 0;
+  for (const k of windowKeys(t)) {
+    for (const h of targetsOn(k)) {
+      const p = per.get(h.id);
+      p.total++; total++;
+      if (isDone(k,h.id)) { p.done++; done++; }
+    }
+  }
+  return { total, done, rate: total ? done / total : null, per };
+}
+
+function streak(t){
+  let n = 0, k = t;
+  for (let i = 0; i < 3650; i++) {
+    const s = dayStat(k);
+    if (s.total > 0) {
+      if (s.done === s.total) n++;
+      else if (k !== t) break;   // 오늘의 미완료는 아직 끝난 날이 아니므로 건너뜀
+    }
+    k = addDays(k,-1);
+  }
+  return n;
+}
+
+function levelOf(stat){
+  if (stat.rate === null) return 'lv-none';
+  const r = stat.rate;
+  if (r === 1) return 'lv4';
+  if (r >= 0.75) return 'lv3';
+  if (r >= 0.5) return 'lv2';
+  if (r > 0) return 'lv1';
+  return 'lv0';
+}
+
+const schedLabel = days => {
+  if (!days || days.length === 0) return '없음';
+  if (days.length === 7) return '매일';
+  return WD_ORDER.filter(d => days.includes(d)).map(d => WD[d]).join('·');
+};
+
+/* ---------- 변경 작업 ---------- */
+function setCheck(k,id,on){
+  if (!k) return;
+  const r = state.records[k] || (state.records[k] = {});
+  if (on) r[id] = true; else delete r[id];
+  if (Object.keys(r).length === 0) delete state.records[k];
+  persist(); render();
+}
+
+function addHabit(name, days){
+  const t = todayKey();
+  state.habits.push({
+    id: newId(), name,
+    schedules: [{ start: t, days: [...days].sort((a,b)=>a-b) }],
+    periods: [{ start: t, end: null }]
+  });
+}
+
+function updateHabit(h, name, days){
+  h.name = name;
+  const last = h.schedules[h.schedules.length-1];
+  const same = last.days.length === days.length && last.days.every((d,i) => d === days[i]);
+  if (!same) {
+    const t = todayKey();
+    const lastEntry = h.schedules[h.schedules.length-1];
+    if (lastEntry.start === t) lastEntry.days = days;   // 같은 날 여러 번 바꾸면 하나로 합침
+    else h.schedules.push({ start: t, days });          // 과거 기록은 이전 요일 기준 유지
+    h.schedules.sort(byStart);
+  }
+}
+
+function archiveHabit(h){
+  const t = todayKey();
+  const last = h.periods[h.periods.length-1];
+  if (!last || last.end !== null) return;
+  last.end = t;                       // 오늘부터 실천 대상에서 제외, 과거 기록은 유지
+}
+
+function reactivateHabit(h){
+  const t = todayKey();
+  const last = h.periods[h.periods.length-1];
+  if (last && last.start === t && last.end !== null) last.end = null;
+  else { h.periods.push({ start: t, end: null }); h.periods.sort(byStart); }
+}
+
+function moveHabit(id, dir){
+  const arr = state.habits;
+  const i = arr.findIndex(h => h.id === id);
+  if (i < 0) return;
+  let j = i + dir;
+  while (j >= 0 && j < arr.length && isArchived(arr[j])) j += dir;
+  if (j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  persist(); render();
+}
+
+/* ---------- 렌더링 ---------- */
+function el(tag, cls, text){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function place(node, col, row){ node.style.gridColumn = String(col); node.style.gridRow = String(row); }
+function mkBtn(label, act, id, aria, disabled){
+  const b = el('button', '', label);
+  b.type = 'button';
+  b.dataset.act = act;
+  b.dataset.id = id;
+  if (aria) b.setAttribute('aria-label', aria);
+  if (disabled) b.disabled = true;
+  return b;
+}
+
+function render(){
+  const t = todayKey();
+  if (!ui.selected || ui.selected > t || ui.selected < windowStart(t)) ui.selected = t;
+  const sum = summarize(t);
+  renderStats(t, sum);
+  renderGrass(t);
+  renderSelected(t);
+  renderHabits(sum);
+  renderArchive();
+}
+
+function renderStats(t, sum){
+  $('sRate').textContent = sum.rate === null ? '-' : Math.round(sum.rate * 100) + '%';
+  $('sRateDetail').textContent = sum.total ? `${sum.done}/${sum.total}` : '실천 대상 없음';
+  $('sStreak').textContent = `${streak(t)}일`;
+  $('sDone').textContent = sum.done;
+  $('sActive').textContent = state.habits.filter(h => !isArchived(h)).length;
+}
+
+function renderGrass(t){
+  const grass = $('grass');
+  const hadFocus = grass.contains(document.activeElement);
+  const start = windowStart(t);
+  const gridStart = addDays(start, -wdOf(start));
+  const lastSunday = addDays(t, -wdOf(t));
+  const cols = diffDays(gridStart, lastSunday) / 7 + 1;
+
+  grass.style.gridTemplateColumns = `34px repeat(${cols}, var(--cell))`;
+  grass.textContent = '';
+  const frag = document.createDocumentFragment();
+
+  [[1,'월'],[3,'수'],[5,'금']].forEach(([d,label]) => {
+    const s = el('span', 'wk-label', label);
+    place(s, 1, d + 2);
+    frag.appendChild(s);
+  });
+
+  for (let c = 0; c < cols; c++) {
+    const sunday = addDays(gridStart, c * 7);
+    for (let r = 0; r < 7; r++) {
+      const k = addDays(sunday, r);
+      const col = c + 2;
+      if (k < start || k > t) {
+        const b = el('span', 'blank');
+        place(b, col, r + 2);
+        frag.appendChild(b);
+        continue;
+      }
+      const stat = dayStat(k);
+      const label = `${krDate(k)} (${WD[wdOf(k)]}) · ` +
+        (stat.total ? `${stat.done}/${stat.total} 완료 · ${Math.round(stat.rate * 100)}%` : '실천 대상 없음');
+      const btn = el('button', 'cell ' + levelOf(stat));
+      btn.type = 'button';
+      btn.dataset.key = k;
+      btn.dataset.tip = label;
+      btn.setAttribute('aria-label', label);
+      if (k === t) btn.classList.add('today');
+      if (k === ui.selected) btn.classList.add('sel');
+      place(btn, col, r + 2);
+      frag.appendChild(btn);
+
+      if (k.slice(8) === '01') {
+        const [y, m] = k.split('-');
+        const txt = m === '01' ? `${y}년 1월` : `${Number(m)}월`;
+        const ml = el('span', 'm-label', txt);
+        place(ml, col, 1);
+        frag.appendChild(ml);
+      }
+    }
+  }
+  grass.appendChild(frag);
+  $('rangeLabel').textContent = `${krDate(start)} ~ ${krDate(t)}`;
+
+  if (hadFocus) {
+    const b = grass.querySelector(`.cell[data-key="${ui.selected}"]`);
+    if (b) b.focus({ preventScroll: true });
+  }
+  if (!ui.scrolled) {
+    const s = $('grassScroll');
+    s.scrollLeft = s.scrollWidth;
+    ui.scrolled = true;
+  }
+}
+
+function renderSelected(t){
+  const k = ui.selected;
+  $('selLabel').textContent = `${krDate(k)} (${WD[wdOf(k)]})${k === t ? ' · 오늘' : ''}`;
+  $('btnToday').disabled = k === t;
+}
+
+function renderHabits(sum){
+  const k = ui.selected;
+  const list = $('habitList');
+  list.textContent = '';
+
+  const stat = dayStat(k);
+  $('selRate').textContent = stat.total
+    ? `이 날 실천 ${stat.done}/${stat.total}개 · 달성률 ${Math.round(stat.rate * 100)}%`
+    : '이 날은 실천 대상 습관이 없어 달성률 계산에서 제외됩니다.';
+
+  const active = state.habits.filter(h => !isArchived(h));
+  $('emptyMsg').hidden = active.length > 0;
+
+  active.forEach((h, idx) => {
+    const on = isTarget(h, k);
+    const per = sum.per.get(h.id) || { total:0, done:0 };
+    const li = el('li', 'habit' + (on ? '' : ' off'));
+
+    const cb = el('input');
+    cb.type = 'checkbox';
+    cb.checked = on && isDone(k, h.id);
+    cb.disabled = !on;
+    cb.dataset.id = h.id;
+    cb.setAttribute('aria-label', `${h.name} 완료 체크`);
+    const lab = el('label', 'check');
+    lab.appendChild(cb);
+
+    const top = el('div', 'habit-top');
+    top.append(lab, el('span', 'hname', h.name), el('span', 'badge', schedLabel(h.schedules[h.schedules.length-1].days)));
+
+    const rate = per.total ? `${Math.round(per.done / per.total * 100)}%` : '대상 없음';
+    const meta = el('div', 'hmeta', `최근 1년 달성률 ${rate} · 완료 ${per.done}회 · ${on ? '이 날 실천 대상' : '이 날은 실천 대상이 아님'}`);
+
+    const acts = el('div', 'hactions');
+    acts.append(
+      mkBtn('↑', 'up', h.id, `${h.name} 위로 이동`, idx === 0),
+      mkBtn('↓', 'down', h.id, `${h.name} 아래로 이동`, idx === active.length - 1),
+      mkBtn('수정', 'edit', h.id, `${h.name} 수정`, false),
+      mkBtn('보관', 'archive', h.id, `${h.name} 보관`, false)
+    );
+
+    li.append(top, meta, acts);
+    list.appendChild(li);
+  });
+
+  if (ui.focusId) {
+    const c = list.querySelector(`input[data-id="${ui.focusId}"]`);
+    if (c && !c.disabled) c.focus({ preventScroll: true });
+    ui.focusId = null;
+  }
+}
+
+function renderArchive(){
+  const list = $('archiveList');
+  list.textContent = '';
+  const archived = state.habits.filter(isArchived);
+  $('archiveBox').hidden = archived.length === 0;
+  $('archiveSummary').textContent = `보관된 습관 (${archived.length})`;
+
+  archived.forEach(h => {
+    const li = el('li', 'habit off');
+    const last = h.periods[h.periods.length-1];
+    const since = last && last.end ? `${krDate(last.end)}부터 보관 중` : '보관 중';
+    const top = el('div', 'habit-top');
+    top.append(el('span', 'hname', h.name), el('span', 'badge', schedLabel(h.schedules[h.schedules.length-1].days)));
+    const meta = el('div', 'hmeta', `${since} · 과거 기록은 유지됩니다`);
+    const acts = el('div', 'hactions');
+    acts.append(
+      mkBtn('수정', 'edit', h.id, `${h.name} 수정`, false),
+      mkBtn('재활성화', 'reactivate', h.id, `${h.name} 재활성화`, false)
+    );
+    li.append(top, meta, acts);
+    list.appendChild(li);
+  });
+}
+
+/* ---------- 잔디 상호작용 & 툴팁 ---------- */
+function showTip(b){
+  const tip = $('tip');
+  tip.textContent = b.dataset.tip;
+  tip.hidden = false;
+  const r = b.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = r.left + r.width / 2 - tw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+  let top = r.top - th - 8;
+  if (top < 8) top = r.bottom + 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+const hideTip = () => { $('tip').hidden = true; };
+
+const grassEl = $('grass');
+grassEl.addEventListener('click', e => {
+  const b = e.target.closest('.cell[data-key]');
+  if (!b) return;
+  ui.selected = b.dataset.key;
+  render();
+  const again = grassEl.querySelector(`.cell[data-key="${ui.selected}"]`);
+  if (again) showTip(again);
+});
+grassEl.addEventListener('mouseover', e => { const b = e.target.closest('.cell[data-key]'); if (b) showTip(b); });
+grassEl.addEventListener('focusin', e => { const b = e.target.closest('.cell[data-key]'); if (b) showTip(b); });
+grassEl.addEventListener('mouseleave', hideTip);
+grassEl.addEventListener('focusout', hideTip);
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.cell[data-key]')) hideTip(); });
+window.addEventListener('scroll', hideTip, true);
+
+/* ---------- 습관 목록 상호작용 ---------- */
+$('habitList').addEventListener('change', e => {
+  const cb = e.target;
+  if (!(cb instanceof HTMLInputElement) || !cb.dataset.id) return;
+  ui.focusId = cb.dataset.id;
+  setCheck(ui.selected, cb.dataset.id, cb.checked);
+});
+
+document.body.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const h = state.habits.find(x => x.id === b.dataset.id);
+  const act = b.dataset.act;
+  if (act === 'edit' && h) openDialog(h);
+  else if (act === 'up' && h) moveHabit(h.id, -1);
+  else if (act === 'down' && h) moveHabit(h.id, 1);
+  else if (act === 'archive' && h) { archiveHabit(h); persist(); render(); }
+  else if (act === 'reactivate' && h) { reactivateHabit(h); persist(); render(); }
+});
+
+/* ---------- 습관 추가·수정 대화상자 ---------- */
+let editingId = null;
+const dayBoxes = () => [...document.querySelectorAll('input[name="day"]')];
+function setDays(days){ dayBoxes().forEach(cb => { cb.checked = days.includes(Number(cb.value)); }); }
+function getDays(){ return dayBoxes().filter(cb => cb.checked).map(cb => Number(cb.value)).sort((a,b)=>a-b); }
+
+function openDialog(h){
+  editingId = h ? h.id : null;
+  $('dlgTitle').textContent = h ? '습관 수정' : '습관 추가';
+  $('dlgName').value = h ? h.name : '';
+  setDays(h ? h.schedules[h.schedules.length-1].days : [0,1,2,3,4,5,6]);
+  $('dlgErr').textContent = '';
+  $('dlg').showModal();
+  $('dlgName').focus();
+}
+
+$('presetAll').addEventListener('click', () => setDays([0,1,2,3,4,5,6]));
+$('presetWeek').addEventListener('click', () => setDays([1,2,3,4,5]));
+$('dlgCancel').addEventListener('click', () => $('dlg').close());
+
+$('dlgForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('dlgName').value.trim();
+  const days = getDays();
+  if (!name) { $('dlgErr').textContent = '습관 이름을 입력해 주세요.'; $('dlgName').focus(); return; }
+  if (days.length === 0) { $('dlgErr').textContent = '실천 요일을 하나 이상 선택해 주세요.'; return; }
+  if (editingId) {
+    const h = state.habits.find(x => x.id === editingId);
+    if (h) updateHabit(h, name, days);
+  } else {
+    addHabit(name, days);
+  }
+  persist();
+  $('dlg').close();
+  render();
+});
+
+/* ---------- 상단 버튼: 오늘, 추가, 내보내기, 가져오기, 초기화 ---------- */
+$('btnToday').addEventListener('click', () => { ui.selected = todayKey(); render(); });
+$('btnAdd').addEventListener('click', () => openDialog(null));
+
+$('btnExport').addEventListener('click', () => {
+  const payload = { app: 'habit-grass', version: 1, exportedAt: new Date().toISOString(), data: state };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a');
+  a.href = url;
+  a.download = `habit-grass-${todayKey()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('백업 파일을 내보냈습니다.');
+});
+
+$('btnImport').addEventListener('click', () => $('fileImport').click());
+
+$('fileImport').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  let text;
+  try { text = await file.text(); }
+  catch(err) { alert('파일을 읽을 수 없습니다. 기존 데이터는 변경되지 않았습니다.'); return; }
+
+  let parsed;
+  try {
+    let obj;
+    try { obj = JSON.parse(text); } catch(_) { throw new Error('JSON 형식이 아닙니다.'); }
+    if (!obj || obj.app !== 'habit-grass' || obj.version !== 1 || !obj.data) throw new Error('습관 잔디밭 백업 파일이 아닙니다.');
+    parsed = normalizeState(obj.data);
+  } catch(err) {
+    alert(`잘못된 백업 파일이라 가져오지 않았습니다.\n${err.message}\n기존 데이터는 변경되지 않았습니다.`);
+    return;
+  }
+
+  const ok = confirm(
+    `백업 파일 (습관 ${parsed.habits.length}개, 기록 ${Object.keys(parsed.records).length}일)로\n` +
+    `현재 데이터를 덮어씁니다. 현재 데이터는 복구할 수 없습니다.\n계속할까요?`
+  );
+  if (!ok) return;
+
+  state = parsed;
+  ui.selected = null;
+  persist();
+  render();
+  toast('가져오기가 완료되었습니다.');
+});
+
+$('btnReset').addEventListener('click', () => {
+  const ok = confirm('모든 습관과 기록을 삭제합니다.\n백업을 하지 않았다면 복구할 수 없습니다.\n정말 초기화할까요?');
+  if (!ok) return;
+  state = emptyState();
+  ui.selected = null;
+  persist();
+  render();
+  toast('초기화되었습니다.');
+});
+
+/* ---------- 토스트 ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+/* ---------- 자정 넘김·탭 복귀 시 갱신 ---------- */
+let lastToday = todayKey();
+function refreshIfNewDay(){
+  const t = todayKey();
+  if (t !== lastToday) { lastToday = t; render(); }
+}
+setInterval(refreshIfNewDay, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshIfNewDay(); });
+
+render();
+})();
+</script>
+</body>
+</html>
