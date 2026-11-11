@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>오늘의 할 일 체크리스트</title>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 24px 16px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #f4f6fb;
+    color: #1f2937;
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    line-height: 1.5;
+  }
+  .container {
+    width: 100%;
+    max-width: 560px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+    padding: 24px;
+  }
+  h1 {
+    margin: 0 0 20px;
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  #todo-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+    font-size: 16px; /* 모바일 입력 시 자동 확대 방지 */
+    font-family: inherit;
+    color: #1f2937;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+  }
+  #todo-input:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 1px;
+    border-color: transparent;
+  }
+  #add-btn {
+    padding: 12px 18px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #ffffff;
+    background: #3b82f6;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  #add-btn:hover {
+    background: #2563eb;
+  }
+  #add-btn:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
+  }
+  #todo-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  #todo-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  #todo-list li:last-child {
+    border-bottom: none;
+  }
+  .todo-check {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #3b82f6;
+  }
+  .todo-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  li.done .todo-text {
+    text-decoration: line-through;
+    color: #9ca3af;
+  }
+  .delete-btn {
+    flex-shrink: 0;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: #dc2626;
+    background: #ffffff;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .delete-btn:hover {
+    background: #fef2f2;
+  }
+  .empty-message {
+    margin: 0;
+    padding: 32px 0;
+    text-align: center;
+    color: #6b7280;
+  }
+  @media (max-width: 480px) {
+    body {
+      padding: 16px 12px;
+    }
+    .container {
+      padding: 18px 14px;
+    }
+    h1 {
+      font-size: 1.3rem;
+    }
+    #add-btn {
+      padding: 12px 14px;
+    }
+  }
+</style>
+</head>
+<body>
+  <main class="container">
+    <h1>오늘의 할 일 체크리스트</h1>
+
+    <form class="input-row" id="todo-form" autocomplete="off">
+      <input type="text" id="todo-input" placeholder="할 일을 입력하세요" aria-label="할 일 입력">
+      <button type="submit" id="add-btn">추가</button>
+    </form>
+
+    <ul id="todo-list"></ul>
+    <p class="empty-message" id="empty-message" hidden>할 일을 추가해 보세요</p>
+  </main>
+
+<script>
+  const STORAGE_KEY = 'today-todo-checklist';
+
+  const form = document.getElementById('todo-form');
+  const input = document.getElementById('todo-input');
+  const listEl = document.getElementById('todo-list');
+  const emptyEl = document.getElementById('empty-message');
+
+  let todos = loadTodos();
+
+  function loadTodos() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveTodos() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    } catch (e) {
+      // 저장 공간을 사용할 수 없는 환경에서는 화면 동작만 유지한다.
+    }
+  }
+
+  function createId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function render() {
+    listEl.innerHTML = '';
+    emptyEl.hidden = todos.length > 0;
+
+    todos.forEach(function (todo) {
+      const li = document.createElement('li');
+      if (todo.done) li.classList.add('done');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'todo-check';
+      checkbox.checked = todo.done;
+      checkbox.setAttribute('aria-label', '완료 체크');
+      checkbox.addEventListener('change', function () {
+        toggleTodo(todo.id);
+      });
+
+      const text = document.createElement('span');
+      text.className = 'todo-text';
+      text.textContent = todo.text;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'delete-btn';
+      deleteBtn.textContent = '삭제';
+      deleteBtn.setAttribute('aria-label', '할 일 삭제: ' + todo.text);
+      deleteBtn.addEventListener('click', function () {
+        deleteTodo(todo.id);
+      });
+
+      li.appendChild(checkbox);
+      li.appendChild(text);
+      li.appendChild(deleteBtn);
+      listEl.appendChild(li);
+    });
+  }
+
+  function addTodo(text) {
+    todos.push({ id: createId(), text: text, done: false });
+    saveTodos();
+    render();
+  }
+
+  function toggleTodo(id) {
+    todos = todos.map(function (todo) {
+      return todo.id === id ? Object.assign({}, todo, { done: !todo.done }) : todo;
+    });
+    saveTodos();
+    render();
+  }
+
+  function deleteTodo(id) {
+    todos = todos.filter(function (todo) {
+      return todo.id !== id;
+    });
+    saveTodos();
+    render();
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (text === '') {
+      input.focus();
+      return;
+    }
+    addTodo(text);
+    input.value = '';
+    input.focus();
+  });
+
+  render();
+</script>
+</body>
+</html>
